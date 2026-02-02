@@ -1,0 +1,200 @@
+import React, { useState, useEffect } from "react";
+import {
+    HeartPulse,
+    LayoutDashboard,
+    Users,
+    Calendar,
+    ClipboardList,
+    BarChart,
+    DollarSign,
+    Settings,
+    User,
+    Bell,
+    LogOut,
+    Menu,
+    X
+} from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import clinicService from "../services/clinicService";
+
+import NotificationDropdown from "../../patient/components/NotificationDropdown";
+
+const ClinicNavbar = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+    const navLinks = [
+        { name: "Dashboard", path: "/clinic/dashboard", icon: LayoutDashboard },
+        { name: "Doctors", path: "/clinic/doctors", icon: Users },
+        { name: "Appointments", path: "/clinic/appointments", icon: ClipboardList },
+        { name: "Patients", path: "/clinic/patients", icon: Calendar },
+        { name: "Analytics", path: "/clinic/analytics", icon: BarChart },
+        { name: "Billing", path: "/clinic/billing", icon: DollarSign }
+    ];
+
+    const handleLogout = () => {
+        localStorage.removeItem("clinic_token");
+        localStorage.removeItem("clinic_status");
+        navigate("/login");
+    };
+
+    // Close dropdowns on route change
+    useEffect(() => {
+        setIsProfileOpen(false);
+        setIsMobileMenuOpen(false);
+    }, [location.pathname]);
+
+    return (
+        <nav className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100 font-primary">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between h-16">
+                    <div className="flex items-center">
+                        <button
+                            onClick={() => navigate("/clinic/dashboard")}
+                            className="flex-shrink-0 flex items-center space-x-2 focus:outline-none cursor-pointer"
+                        >
+                            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                                <HeartPulse className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="text-xl font-bold text-gray-900 tracking-tight">HealHub</span>
+                        </button>
+
+                        {/* Desktop Navigation */}
+                        <div className="hidden md:ml-8 md:flex md:space-x-1">
+                            {navLinks.map((link) => {
+                                const isActive = location.pathname === link.path;
+                                return (
+                                    <button
+                                        key={link.name}
+                                        onClick={() => navigate(link.path)}
+                                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${isActive
+                                            ? "bg-teal-50 text-teal-700"
+                                            : "text-gray-600 hover:bg-gray-50 hover:text-teal-600"
+                                            }`}
+                                    >
+                                        <link.icon className={`w-4 h-4 ${isActive ? "text-teal-600" : ""}`} />
+                                        <span>{link.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="hidden md:flex items-center space-x-4">
+                        <NotificationDropdown />
+
+                        <div className="relative ml-4 pl-4 border-l border-gray-200">
+                            <button
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="flex items-center space-x-3 focus:outline-none cursor-pointer group"
+                            >
+                                <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm group-hover:scale-110 transition-transform">
+                                    CA
+                                </div>
+                            </button>
+
+                            {/* Profile Dropdown */}
+                            {isProfileOpen && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-10"
+                                        onClick={() => setIsProfileOpen(false)}
+                                    ></div>
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-20 animate-slideDown">
+                                        <button
+                                            onClick={() => navigate("/clinic/profile")}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                                        >
+                                            <User className="w-4 h-4" />
+                                            <span>Profile</span>
+                                        </button>
+                                        <button
+                                            onClick={() => navigate("/clinic/settings")}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-teal-600 transition-colors"
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            <span>Settings</span>
+                                        </button>
+                                        <div className="my-1 border-t border-gray-50"></div>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center space-x-3 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            <span>Logout</span>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Mobile menu button */}
+                    <div className="flex items-center md:hidden">
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none cursor-pointer"
+                        >
+                            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile menu */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-white border-t border-gray-100 pb-3 pt-2">
+                    <div className="space-y-1 px-2">
+                        {navLinks.map((link) => {
+                            const isActive = location.pathname === link.path;
+                            return (
+                                <button
+                                    key={link.name}
+                                    onClick={() => {
+                                        navigate(link.path);
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className={`flex items-center space-x-3 px-3 py-3 rounded-xl text-base font-semibold w-full text-left cursor-pointer ${isActive
+                                        ? "bg-teal-50 text-teal-700"
+                                        : "text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    <link.icon className="w-5 h-5" />
+                                    <span>{link.name}</span>
+                                </button>
+                            );
+                        })}
+
+                        <div className="border-t border-gray-50 my-2 pt-2">
+                            <button
+                                onClick={() => navigate("/clinic/profile")}
+                                className="flex items-center space-x-3 px-3 py-3 rounded-xl text-base font-semibold w-full text-left text-gray-600 hover:bg-gray-50 cursor-pointer"
+                            >
+                                <User className="w-5 h-5" />
+                                <span>Profile</span>
+                            </button>
+                            <button
+                                onClick={() => navigate("/clinic/settings")}
+                                className="flex items-center space-x-3 px-3 py-3 rounded-xl text-base font-semibold w-full text-left text-gray-600 hover:bg-gray-50 cursor-pointer"
+                            >
+                                <Settings className="w-5 h-5" />
+                                <span>Settings</span>
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-base font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </nav>
+    );
+};
+
+export default ClinicNavbar;
