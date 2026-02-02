@@ -1,0 +1,68 @@
+import * as clinicProfileService from "../../services/clinic/clinicProfileService.js";
+
+export const getProfile = async (req, res) => {
+    try {
+        const userId = req.user?._id || req.user?.id;
+        const email = req.user?.email;
+
+        console.log(`[ClinicProfile] Fetching profile for UserID: ${userId}, Email: ${email}`);
+
+        const result = await clinicProfileService.getProfileByUserId(userId, email);
+        if (!result) {
+            console.error(`[ClinicProfile] Profile not found for UserID: ${userId}`);
+            return res.status(404).json({
+                message: "Clinic profile not found. Please ensure you completed registration.",
+                userId: userId,
+                email: email
+            });
+        }
+
+        console.log(`[ClinicProfile] Data retrieved for ${result.clinicName}:`, result);
+
+        // Data integrity check for clinic-specific fields
+        const isDataComplete = result.clinicName && result.phone && result.address;
+
+        res.status(200).json({
+            ...result,
+            _dataIntegrity: isDataComplete ? "OK" : "INCOMPLETE",
+            _warning: isDataComplete ? null : "Some registration data is missing from this profile."
+        });
+    } catch (error) {
+        console.error(`[ClinicProfile] ERROR: ${error.message}`);
+        res.status(500).json({ message: "Internal Server Error: " + error.message });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const clinic = await clinicProfileService.getProfileByUserId(req.user._id);
+        if (!clinic) return res.status(404).json({ message: "Clinic not found" });
+
+        const result = await clinicProfileService.updateClinicProfile(clinic._id, req.body);
+        res.status(200).json({ success: true, clinic: result });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const updatePreferences = async (req, res) => {
+    try {
+        const clinic = await clinicProfileService.getProfileByUserId(req.user._id);
+        if (!clinic) return res.status(404).json({ message: "Clinic not found" });
+
+        const result = await clinicProfileService.updatePreferences(clinic._id, req.body.preferences);
+        res.status(200).json({ success: true, clinic: result });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        await clinicProfileService.changePassword(req.user._id, currentPassword, newPassword);
+        res.status(200).json({ success: true, message: "Password updated" });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
