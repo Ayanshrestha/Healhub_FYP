@@ -76,6 +76,8 @@ const BookingFlow = () => {
         setSelectedSlot(""); // Clear previously selected slot
         setLoading(true);
         try {
+            // CRITICAL: Fetch Real-Time Availability
+            // We don't just show static hours; we calculate empty slots dynamically from the backend.
             const availableSlots = await patientService.getDoctorAvailability(selectedDoctor._id, date);
             setSlots(availableSlots || []);
         } catch (error) {
@@ -93,6 +95,7 @@ const BookingFlow = () => {
     const handleSendOtp = async () => {
         setLoading(true);
         try {
+            // Security Step: Verify phone to prevent spam bookings
             await patientService.sendOtp(phone);
             setIsOtpSent(true);
         } catch (error) {
@@ -119,19 +122,21 @@ const BookingFlow = () => {
     const handleBookingFinalize = async (paymentMethod) => {
         setLoading(true);
         try {
+            // Construct the final payload for the backend
             const bookingData = {
                 clinicId,
                 doctorId: selectedDoctor._id,
                 appointmentDate: selectedDate,
                 timeSlot: selectedSlot,
-                phone,
-                otp,
-                paymentOption: paymentMethod // Backend expects paymentOption
+                phone, // Passed again for backend validation
+                otp,   // Passed again to prove ownership
+                paymentOption: paymentMethod // "Clinic" or "Online"
             };
 
             const result = await patientService.bookAppointment(bookingData);
 
             // Backend returns { success: true, message: "...", data: { appointment, paymentData } }
+            // Handle Payment Redirection or Success Screen
             if (result.data?.paymentData?.payment_url) {
                 window.location.href = result.data.paymentData.payment_url;
             } else {

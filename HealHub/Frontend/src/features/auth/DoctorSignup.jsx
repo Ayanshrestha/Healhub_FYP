@@ -100,7 +100,6 @@ export default function DoctorSignup() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="doctor@example.com"
                 required
                 className="w-full px-4 py-3 border rounded-lg focus:ring-emerald-500"
               />

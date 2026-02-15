@@ -39,7 +39,7 @@ export const updateAppointmentStatus = async (req, res) => {
         // Notify Patient
         await createNotification({
             recipientId: appointment.patientId,
-            recipientModel: "Patient",
+            recipientModel: "User",
             title: `Appointment ${status}`,
             message: `Your appointment with ${appointment.providerId.fullName} has been ${status}.`,
             type: "APPOINTMENT",
@@ -68,12 +68,38 @@ export const rescheduleAppointment = async (req, res) => {
         // Notify Patient
         await createNotification({
             recipientId: appointment.patientId,
-            recipientModel: "Patient",
+            recipientModel: "User",
             title: "Appointment Rescheduled",
             message: `Your appointment with ${appointment.providerId.fullName} has been rescheduled to ${new Date(appointmentDate).toLocaleDateString()} at ${timeSlot}.`,
             type: "APPOINTMENT",
             priority: "WARNING"
         });
+
+        res.status(200).json({ success: true, appointment });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getAppointmentDetails = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+        const appointment = await Appointment.findById(appointmentId)
+            .populate("patientId", "fullName email phone gender age bloodGroup address")
+            .populate("clinicId", "clinicName address phone")
+            .lean();
+
+        if (!appointment) {
+            return res.status(404).json({ success: false, message: "Appointment not found" });
+        }
+
+        // Add calculated age if DOB exists but age doesn't (optional robustness)
+        if (appointment.patientId && appointment.patientId.dob && !appointment.patientId.age) {
+            const dob = new Date(appointment.patientId.dob);
+            const ageDiffMs = Date.now() - dob.getTime();
+            const ageDate = new Date(ageDiffMs);
+            appointment.patientId.age = Math.abs(ageDate.getUTCFullYear() - 1970);
+        }
 
         res.status(200).json({ success: true, appointment });
     } catch (error) {

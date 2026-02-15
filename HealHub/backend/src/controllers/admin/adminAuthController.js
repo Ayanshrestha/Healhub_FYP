@@ -46,6 +46,26 @@ export const loginAdmin = async (req, res) => {
             userAgent: req.headers["user-agent"]
         });
 
+        // Notify Admins of Security Event
+        try {
+            const admins = await User.find({ role: "admin" });
+            const { createNotification } = await import("../../services/common/notificationService.js");
+
+            for (const admin of admins) {
+                await createNotification({
+                    recipientId: admin._id,
+                    recipientModel: "User",
+                    type: "SYSTEM",
+                    priority: "URGENT",
+                    title: "Security Alert: Failed Admin Login 🛡️",
+                    message: `A login attempt failed for ${req.body.email}. Source IP: ${req.ip}`,
+                    link: "/admin/security-logs" // Assuming this exists or will be added
+                });
+            }
+        } catch (notifyErr) {
+            console.error("Failed to send security notification:", notifyErr);
+        }
+
         res.status(error.statusCode || 500).json({
             message: error.message || "Admin login failed",
         });

@@ -59,7 +59,6 @@ const AdminLogin = () => {
                                         type="email"
                                         required
                                         className="w-full bg-gray-50 border-transparent py-3 pl-11 pr-4 rounded-2xl focus:ring-2 focus:ring-teal-500 transition-all outline-none"
-                                        placeholder="admin@healhub.com"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                     />

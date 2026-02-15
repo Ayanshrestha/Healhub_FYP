@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Check, CreditCard, Loader2 } from "lucide-react";
 import axios from "axios";
+import clinicService from "../services/clinicService";
 
 const ClinicSubscription = () => {
     const [loading, setLoading] = useState(null); // stores the plan name being processed

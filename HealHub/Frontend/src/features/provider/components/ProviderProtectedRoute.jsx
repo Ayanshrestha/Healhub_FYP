@@ -20,12 +20,10 @@ const ProviderProtectedRoute = ({ children }) => {
     const isAuthenticated = !!token;
     const isProvider = user && (user.role === "doctor" || user.role === "therapist");
 
+    // Robust check: Redirect ONLY if token is missing or role is definitely wrong.
+    // If token exists, we let axios interceptors handle 401/expired states.
     if (!isAuthenticated || !isProvider) {
-        console.log("Access denied to provider route. Authenticated:", isAuthenticated, "Provider:", isProvider);
-        // Clear tokens to be safe if auth failed
-        if (!isAuthenticated) {
-            localStorage.removeItem("provider_token");
-        }
+        console.warn("🔐 Access denied: Redirecting to login. Authenticated:", isAuthenticated, "Provider:", isProvider);
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 

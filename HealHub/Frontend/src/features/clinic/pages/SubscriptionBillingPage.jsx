@@ -73,15 +73,43 @@ const SubscriptionBillingPage = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => {
-                                localStorage.setItem("clinic_status", "ACTIVE");
-                                window.location.href = "/clinic/dashboard";
-                            }}
-                            className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-sm hover:bg-teal-700 transition shadow-lg shadow-teal-100"
-                        >
-                            Verify Payment (Demo Activation)
-                        </button>
+                        {/* Conditional Payment Action */}
+                        {(profile?.status === "APPROVED_UNPAID" || profile?.status === "BLOCKED") ? (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        setLoading(true);
+                                        // Default to standard plan for now, or use logic to select plan
+                                        const planName = profile?.subscriptionPlan === "PREMIUM" ? "PREMIUM" : "STANDARD";
+                                        const response = await clinicService.initiateSubscription(planName);
+
+                                        if (response.payment_url) {
+                                            window.location.href = response.payment_url;
+                                        } else {
+                                            alert("Failed to initiate payment. Please try again.");
+                                            setLoading(false);
+                                        }
+                                    } catch (error) {
+                                        console.error("Payment initiation failed:", error);
+                                        alert(error.response?.data?.message || "Payment failed to start.");
+                                        setLoading(false);
+                                    }
+                                }}
+                                className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-sm hover:bg-teal-700 transition shadow-lg shadow-teal-100 flex items-center justify-center"
+                            >
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Pay securely with Khalti"}
+                            </button>
+                        ) : profile?.status === "PENDING_APPROVAL" ? (
+                            <div className="w-full py-6 bg-amber-50 border-2 border-amber-100 rounded-2xl text-center">
+                                <p className="text-amber-800 font-black uppercase tracking-widest text-xs mb-1">Verification Pending</p>
+                                <p className="text-amber-600 text-sm font-bold">Your account is under review by the administrator.</p>
+                                <p className="text-amber-600/60 text-xs mt-2 font-medium">Payment will be enabled once approved.</p>
+                            </div>
+                        ) : (
+                            <div className="w-full py-4 bg-gray-50 border border-gray-100 rounded-2xl text-center text-gray-400 font-bold text-sm">
+                                Status: <span className="uppercase">{profile?.status?.replace(/_/g, " ")}</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Payment Method Card */}

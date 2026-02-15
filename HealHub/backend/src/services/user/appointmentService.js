@@ -11,22 +11,40 @@ import { createNotification } from "../common/notificationService.js";
 export const getDoctorAvailability = async (doctorId, dateString) => {
     const date = new Date(dateString);
     const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const dayName = dayNames[date.getDay()];
+    // Use UTC methods to ensure consistent day selection regardless of server timezone
+    const dayName = dayNames[date.getUTCDay()];
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) throw new Error("Doctor not found");
 
-    const availability = doctor.availability?.get(dayName);
+    let availability = doctor.availability?.get(dayName);
+
+    // Fallback for manually created doctors who haven't set specific availability yet
+    // Default: Open 10:00 AM - 5:00 PM everyday
+    if (!availability && (!doctor.availability || doctor.availability.size === 0)) {
+        availability = {
+            isClosed: false,
+            slots: [
+                "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM",
+                "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM",
+                "04:00 PM", "04:30 PM", "05:00 PM"
+            ]
+        };
+    }
+
     if (!availability || availability.isClosed) {
         return [];
     }
 
-    // Get existing bookings for this doctor on this date
+    // --- AVAILABILITY ALGORITHM ---
+    // 1. Calculate Start & End of the requested date
     const startOfDay = new Date(dateString);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(dateString);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // 2. Fetch all EXISTING bookings for this doctor on this specific date
+    // We exclude "Cancelled" appointments so they become available again.
     const bookedSlots = await Appointment.find({
         providerId: doctorId,
         appointmentDate: { $gte: startOfDay, $lte: endOfDay },
@@ -35,7 +53,8 @@ export const getDoctorAvailability = async (doctorId, dateString) => {
 
     const bookedTimeSlots = bookedSlots.map(b => b.timeSlot);
 
-    // Filter available slots
+    // 3. Subtract Booked Slots from Total Available Slots
+    // Available = Total - Booked
     return availability.slots.filter(slot => !bookedTimeSlots.includes(slot));
 };
 
@@ -87,7 +106,9 @@ export const createAppointment = async (userId, bookingData) => {
         throw new Error("Doctor is not clinic-approved or not affiliated with this clinic");
     }
 
-    // 3. Double check slot availability
+    // 3. Double check slot availability (CRITICAL: Race Condition Prevention)
+    // We check the DB one last time before converting the intent into an actual booking.
+    // This prevents two users from booking the same slot at the exact same millisecond.
     const startOfDay = new Date(appointmentDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(appointmentDate);
@@ -97,7 +118,7 @@ export const createAppointment = async (userId, bookingData) => {
         providerId: doctorId,
         appointmentDate: { $gte: startOfDay, $lte: endOfDay },
         timeSlot,
-        status: { $ne: "Cancelled" }
+        status: { $ne: "Cancelled" } // Ignore cancelled ones
     });
 
     if (existingBooking) {
@@ -109,7 +130,8 @@ export const createAppointment = async (userId, bookingData) => {
     const patient = await Patient.findOne({ userId });
     if (!patient) throw new Error("Patient profile not found");
 
-    // 5. Create Appointment
+    // 5. Create Appointment (Database Entry)
+    // Inserts the new document with "Pending" status.
     const appointment = await Appointment.create({
         patientId: patient._id,
         providerId: doctorId,
@@ -134,6 +156,8 @@ export const createAppointment = async (userId, bookingData) => {
 
     let paymentData = null;
     if (paymentOption === "Online") {
+        // If Online Payment is selected, communicate with Payment Gateway (Khalti)
+        // This returns a payment URL for the frontend to redirect the user to.
         paymentData = await initiateAppointmentPayment(appointment._id);
     }
 

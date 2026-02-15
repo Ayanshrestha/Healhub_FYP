@@ -79,5 +79,5 @@ export const getUnaffiliatedDoctors = async (clinicId, specialization) => {
         query.specialization = new RegExp(specialization, "i");
     }
 
-    return await Doctor.find(query).limit(20);
+    return await Doctor.find(query).sort({ createdAt: -1 }).limit(50);
 };

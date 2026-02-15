@@ -31,7 +31,8 @@ const PaymentVerification = () => {
 
             try {
                 verificationAttempted.current = true;
-                const token = localStorage.getItem("token"); // Assuming clinic token is stored as 'token'
+                // Retrieve the correct clinic token
+                const token = localStorage.getItem("clinic_token") || localStorage.getItem("token");
 
                 if (!token) {
                     setStatus("error");
@@ -42,6 +43,9 @@ const PaymentVerification = () => {
                 const result = await verifyPaymentAPI(pidx, token);
 
                 if (result.success) {
+                    // Update local storage status to ACTIVE so protected routes allow access
+                    localStorage.setItem("clinic_status", "ACTIVE");
+
                     setStatus("success");
                     setMessage("Payment received successfully! Your clinic is now ACTIVE.");
                 } else {
@@ -78,7 +82,7 @@ const PaymentVerification = () => {
                         <h2 className="text-2xl font-black text-gray-900">Payment Successful</h2>
                         <p className="text-gray-500 font-medium">{message}</p>
                         <button
-                            onClick={() => navigate("/login")}
+                            onClick={() => navigate("/clinic/dashboard")}
                             className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-gray-800 transition-all shadow-lg"
                         >
                             <span>Go to Dashboard</span>

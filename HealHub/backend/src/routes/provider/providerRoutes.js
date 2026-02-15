@@ -26,6 +26,7 @@ router.patch("/affiliations", affiliationController.updateAffiliation);
 
 // Appointments
 router.get("/appointments", appointmentController.getAppointments);
+router.get("/appointments/:appointmentId", appointmentController.getAppointmentDetails);
 router.patch("/appointments/:appointmentId/status", appointmentController.updateAppointmentStatus);
 router.patch("/appointments/:appointmentId/reschedule", appointmentController.rescheduleAppointment);
 

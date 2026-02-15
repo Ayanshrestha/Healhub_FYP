@@ -8,9 +8,9 @@ const router = express.Router();
 // All appointment routes require patient role
 router.use(authMiddleware, allowRoles("patient"));
 
-router.get("/availability/:doctorId", appointmentController.getAvailability);
-router.post("/request-otp", appointmentController.requestOtp);
-router.post("/book", appointmentController.bookAppointment);
+router.get("/availability/:doctorId", appointmentController.getAvailability); // Public check for slots
+router.post("/request-otp", appointmentController.requestOtp); // Step 1 of Booking
+router.post("/book", appointmentController.bookAppointment); // Final Step: Validates OTP & Creates Appt
 
 // History and Management
 router.get("/upcoming", appointmentController.listUpcoming);

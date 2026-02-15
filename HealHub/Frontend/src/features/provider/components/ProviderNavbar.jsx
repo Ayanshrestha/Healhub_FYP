@@ -46,48 +46,47 @@ const ProviderNavbar = () => {
     return (
         <nav className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100 font-primary">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    <div className="flex items-center">
-                        <button
-                            onClick={() => navigate("/provider/dashboard")}
-                            className="flex-shrink-0 flex items-center space-x-2 focus:outline-none cursor-pointer"
-                        >
-                            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                                <HeartPulse className="w-5 h-5 text-white" />
-                            </div>
-                            <span className="text-xl font-bold text-gray-900 tracking-tight">HealHub</span>
-                        </button>
-
-                        {/* Desktop Navigation */}
-                        <div className="hidden md:ml-8 md:flex md:space-x-1">
-                            {navLinks.map((link) => {
-                                const isActive = location.pathname === link.path;
-                                return (
-                                    <button
-                                        key={link.name}
-                                        onClick={() => navigate(link.path)}
-                                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${isActive
-                                            ? "bg-teal-50 text-teal-700"
-                                            : "text-gray-600 hover:bg-gray-50 hover:text-teal-600"
-                                            }`}
-                                    >
-                                        <link.icon className={`w-4 h-4 ${isActive ? "text-teal-600" : ""}`} />
-                                        <span>{link.name}</span>
-                                    </button>
-                                );
-                            })}
+                <div className="flex justify-between items-center h-20">
+                    {/* Logo */}
+                    <button
+                        onClick={() => navigate("/provider/dashboard")}
+                        className="flex-shrink-0 flex items-center space-x-2 focus:outline-none cursor-pointer group"
+                    >
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-12 group-hover:scale-110 transition-all font-bold">
+                            <HeartPulse className="w-6 h-6 text-white" />
                         </div>
+                        <span className="text-xl font-bold text-gray-900 tracking-tight">HealHub</span>
+                    </button>
+
+                    {/* Navigation Links - Centered */}
+                    <div className="hidden md:flex items-center space-x-2">
+                        {navLinks.map((link) => {
+                            const isActive = location.pathname === link.path;
+                            return (
+                                <button
+                                    key={link.name}
+                                    onClick={() => navigate(link.path)}
+                                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${isActive
+                                        ? "bg-teal-50 text-teal-600 shadow-sm shadow-teal-100"
+                                        : "text-gray-500 hover:text-teal-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    <link.icon className="w-4 h-4" />
+                                    <span>{link.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     <div className="hidden md:flex items-center space-x-4">
                         <NotificationDropdown />
 
-                        <div className="relative ml-4 pl-4 border-l border-gray-200">
+                        <div className="relative ml-4 pl-4 border-l border-gray-100">
                             <button
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center space-x-3 focus:outline-none cursor-pointer group"
                             >
-                                <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm group-hover:scale-110 transition-transform">
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all">
                                     PV
                                 </div>
                             </button>

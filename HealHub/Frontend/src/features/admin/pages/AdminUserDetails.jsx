@@ -17,7 +17,7 @@ import {
     Award,
     CreditCard
 } from "lucide-react";
-import { getUserDetailsAPI, toggleUserStatus } from "../services/adminAuthService";
+import { getUserDetailsAPI, toggleUserStatus, verifyDoctorAPI } from "../services/adminAuthService";
 
 const AdminUserDetails = () => {
     const { userId } = useParams();
@@ -50,6 +50,21 @@ const AdminUserDetails = () => {
         try {
             await toggleUserStatus(userId);
             await fetchUserDetails(); // Refresh data
+        } catch (err) {
+            alert(err.message || "Operation failed");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleVerifyDoctor = async () => {
+        if (!window.confirm("Are you sure you want to verify this doctor? This will allow them to appear in search results.")) return;
+
+        setUpdating(true);
+        try {
+            await verifyDoctorAPI(userId);
+            await fetchUserDetails(); // Refresh data
+            alert("Doctor verified successfully!");
         } catch (err) {
             alert(err.message || "Operation failed");
         } finally {
@@ -104,12 +119,22 @@ const AdminUserDetails = () => {
                 </button>
 
                 <div className="flex items-center space-x-4">
+                    {user.role === 'doctor' && profile?.verificationStatus === 'pending' && (
+                        <button
+                            onClick={handleVerifyDoctor}
+                            disabled={updating}
+                            className="flex items-center space-x-2 px-6 py-3 rounded-2xl font-bold transition shadow-lg bg-teal-600 text-white hover:bg-teal-700 shadow-teal-900/10 disabled:opacity-50"
+                        >
+                            {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                            <span>Approve Doctor</span>
+                        </button>
+                    )}
                     <button
                         onClick={handleToggleStatus}
                         disabled={updating}
                         className={`flex items-center space-x-2 px-6 py-3 rounded-2xl font-bold transition shadow-lg ${user.status === 'active'
-                                ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-900/10'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-900/10'
+                            ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-amber-900/10'
+                            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-900/10'
                             } disabled:opacity-50`}
                     >
                         {updating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
@@ -149,8 +174,8 @@ const AdminUserDetails = () => {
                             <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-400 font-medium">Verification</span>
                                 <span className={`font-bold ${(profile?.verificationStatus === 'verified' || profile?.status === 'ACTIVE')
-                                        ? 'text-emerald-600'
-                                        : 'text-amber-600'
+                                    ? 'text-emerald-600'
+                                    : 'text-amber-600'
                                     } uppercase text-[10px]`}>
                                     {profile?.verificationStatus || profile?.status || 'N/A'}
                                 </span>
@@ -298,7 +323,7 @@ const AdminUserDetails = () => {
                     )}
                 </div>
             </div>
-        </AdminLayout>
+        </AdminLayout >
     );
 };
 

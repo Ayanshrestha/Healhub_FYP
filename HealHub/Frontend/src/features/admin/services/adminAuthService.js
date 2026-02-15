@@ -1,12 +1,9 @@
-import axios from "axios";
-
-const AUTH_API = "http://localhost:5000/api/auth";
-const ADMIN_API = "http://localhost:5000/api/admin";
+import api from "../../../services/api";
 
 // Auth
 export const adminLoginAPI = async (credentials) => {
     try {
-        const response = await axios.post(`${AUTH_API}/admin/login`, credentials);
+        const response = await api.post("/auth/admin/login", credentials);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "An unexpected error occurred" };
@@ -33,13 +30,9 @@ export const getAdminSession = () => {
 };
 
 // Governance & Dashboard
-const getHeader = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem("adminToken")}` }
-});
-
 export const getDashboardStats = async () => {
     try {
-        const response = await axios.get(`${ADMIN_API}/dashboard/stats`, getHeader());
+        const response = await api.get("/admin/dashboard/stats");
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to fetch stats" };
@@ -50,12 +43,12 @@ export const getSystemData = async (type) => {
     try {
         let path = "";
         switch (type) {
-            case "users": path = "/users/list"; break;
-            case "clinics": path = "/clinics/list"; break;
-            case "logs": path = "/logs/list"; break;
-            default: path = `/data/${type}`;
+            case "users": path = "/admin/users/list"; break;
+            case "clinics": path = "/admin/clinics/list"; break;
+            case "logs": path = "/admin/logs/list"; break;
+            default: path = `/admin/data/${type}`;
         }
-        const response = await axios.get(`${ADMIN_API}${path}`, getHeader());
+        const response = await api.get(path);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: `Failed to fetch ${type}` };
@@ -64,7 +57,7 @@ export const getSystemData = async (type) => {
 
 export const updateClinicStatus = async (clinicId, status) => {
     try {
-        const response = await axios.patch(`${ADMIN_API}/clinics/${clinicId}/status`, { status }, getHeader());
+        const response = await api.patch(`/admin/clinics/${clinicId}/status`, { status });
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Action failed" };
@@ -73,7 +66,7 @@ export const updateClinicStatus = async (clinicId, status) => {
 
 export const getClinicDetailsAPI = async (clinicId) => {
     try {
-        const response = await axios.get(`${ADMIN_API}/clinics/${clinicId}`, getHeader());
+        const response = await api.get(`/admin/clinics/${clinicId}`);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to fetch clinic details" };
@@ -82,16 +75,25 @@ export const getClinicDetailsAPI = async (clinicId) => {
 
 export const toggleUserStatus = async (userId) => {
     try {
-        const response = await axios.patch(`${ADMIN_API}/users/${userId}/toggle-status`, {}, getHeader());
+        const response = await api.patch(`/admin/users/${userId}/toggle-status`, {});
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to update user status" };
     }
 };
 
+export const verifyDoctorAPI = async (userId) => {
+    try {
+        const response = await api.patch(`/admin/users/${userId}/verify-doctor`, {});
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || { message: "Failed to verify doctor" };
+    }
+};
+
 export const getUserDetailsAPI = async (userId) => {
     try {
-        const response = await axios.get(`${ADMIN_API}/users/${userId}`, getHeader());
+        const response = await api.get(`/admin/users/${userId}`);
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to fetch user details" };
@@ -100,7 +102,7 @@ export const getUserDetailsAPI = async (userId) => {
 
 export const getAnalytics = async () => {
     try {
-        const response = await axios.get(`${ADMIN_API}/analytics/growth`, getHeader());
+        const response = await api.get("/admin/analytics/growth");
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to fetch analytics" };
@@ -109,8 +111,7 @@ export const getAnalytics = async () => {
 
 export const exportLogs = async () => {
     try {
-        const response = await axios.get(`${ADMIN_API}/logs/export`, {
-            ...getHeader(),
+        const response = await api.get("/admin/logs/export", {
             responseType: 'blob'
         });
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -128,7 +129,7 @@ export const exportLogs = async () => {
 // Notifications
 export const getNotifications = async () => {
     try {
-        const response = await axios.get(`http://localhost:5000/api/notifications`, getHeader());
+        const response = await api.get("/notifications");
         return response.data?.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to fetch notifications" };
@@ -137,7 +138,7 @@ export const getNotifications = async () => {
 
 export const markNotificationRead = async (id) => {
     try {
-        const response = await axios.patch(`http://localhost:5000/api/notifications/${id}/read`, {}, getHeader());
+        const response = await api.patch(`/notifications/${id}/read`, {});
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to mark read" };
@@ -146,7 +147,7 @@ export const markNotificationRead = async (id) => {
 
 export const markAllNotificationsRead = async () => {
     try {
-        const response = await axios.patch(`http://localhost:5000/api/notifications/read-all`, {}, getHeader());
+        const response = await api.patch("/notifications/read-all", {});
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: "Failed to mark all read" };

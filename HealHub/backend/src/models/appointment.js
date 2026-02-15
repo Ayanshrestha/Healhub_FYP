@@ -32,6 +32,9 @@ const appointmentSchema = new mongoose.Schema(
         },
         status: {
             type: String,
+            // Pending: Created but waiting for something (or just created)
+            // Approved: Confirmed by system/doctor
+            // Cancelled: Slot is freed up
             enum: ["Pending", "Approved", "Confirmed", "Rescheduled", "Completed", "Cancelled"],
             default: "Pending",
         },

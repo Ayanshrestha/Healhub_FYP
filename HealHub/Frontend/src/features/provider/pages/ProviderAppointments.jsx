@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Calendar,
     Clock,
@@ -6,7 +7,6 @@ import {
     MoreHorizontal,
     CheckCircle,
     XCircle,
-    Clock3,
     Filter,
     Search,
     ChevronLeft,
@@ -15,11 +15,13 @@ import {
     AlertCircle,
     Home,
     Video,
-    MapPin
+    MapPin,
+    Eye
 } from "lucide-react";
 import * as providerService from "../services/providerService";
 
 const ProviderAppointments = () => {
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
@@ -35,7 +37,15 @@ const ProviderAppointments = () => {
             setLoading(true);
             const statusFilter = filter === "all" ? {} : { status: filter };
             const res = await providerService.getAppointments(statusFilter);
-            setAppointments(res.appointments || []);
+            // Safe check for res and appointments array
+            if (res && Array.isArray(res.appointments)) {
+                // Filter out any null/undefined items immediately
+                const validAppointments = res.appointments.filter(item => item && typeof item === 'object');
+                setAppointments(validAppointments);
+            } else {
+                console.warn("Invalid appointments data received:", res);
+                setAppointments([]);
+            }
         } catch (err) {
             console.error("Fetch appointments error:", err);
             setMessage({ type: 'error', text: 'Failed to load appointments' });
@@ -57,10 +67,16 @@ const ProviderAppointments = () => {
         }
     };
 
-    const filteredAppointments = appointments.filter(appt =>
-        appt.patientId?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        appt.patientId?._id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleViewDetails = (appointmentId) => {
+        navigate(`/provider/appointments/${appointmentId}`);
+    };
+
+    const filteredAppointments = Array.isArray(appointments) ? appointments.filter(appt =>
+        appt && (
+            (appt.patientId?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (appt.patientId?._id || "").toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    ) : [];
 
     const getStatusStyles = (status) => {
         switch (status) {
@@ -70,6 +86,17 @@ const ProviderAppointments = () => {
             case 'Cancelled': return 'bg-red-100 text-red-600 border-red-200';
             case 'Rescheduled': return 'bg-purple-100 text-purple-600 border-purple-200';
             default: return 'bg-gray-100 text-gray-600 border-gray-200';
+        }
+    };
+
+    const safeFormatDate = (dateString) => {
+        try {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) {
+            return 'Error';
         }
     };
 
@@ -144,18 +171,18 @@ const ProviderAppointments = () => {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {filteredAppointments.length > 0 ? filteredAppointments.map((appt) => (
-                                <tr key={appt._id} className="hover:bg-teal-50/30 transition-colors group">
+                                <tr key={appt?._id || Math.random()} className="hover:bg-teal-50/30 transition-colors group">
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-[1.2rem] bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-black shadow-lg shadow-teal-50">
-                                                {(appt.patientId?.fullName || "P").charAt(0)}
+                                                {String(appt.patientId?.fullName || "P").charAt(0)}
                                             </div>
                                             <div>
-                                                <span className="font-black text-gray-900 block">{appt.patientId?.fullName || "Jane Doe"}</span>
+                                                <span className="font-black text-gray-900 block">{appt?.patientId?.fullName || "Jane Doe"}</span>
                                                 <div className="flex items-center space-x-2 mt-0.5">
                                                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Verified Identity</span>
                                                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                    <span className="text-[10px] text-teal-500 font-bold uppercase tracking-tighter">ID: {appt.patientId?._id.slice(-6)}</span>
+                                                    <span className="text-[10px] text-teal-500 font-bold uppercase tracking-tighter">ID: {String(appt.patientId?._id || "").slice(-6)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -164,43 +191,50 @@ const ProviderAppointments = () => {
                                         <div className="space-y-1">
                                             <div className="flex items-center space-x-2 text-gray-900 font-black text-sm">
                                                 <Calendar className="w-3.5 h-3.5 text-teal-500" />
-                                                <span>{new Date(appt.appointmentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                                <span>{safeFormatDate(appt?.appointmentDate)}</span>
                                             </div>
                                             <div className="flex items-center space-x-2 text-gray-400 font-bold text-xs">
                                                 <Clock className="w-3.5 h-3.5" />
-                                                <span>{appt.appointmentTime}</span>
+                                                <span>{appt?.appointmentTime}</span>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-wider ${appt.appointmentType === 'HOME_VISIT'
+                                        <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-wider ${appt?.appointmentType === 'HOME_VISIT'
                                             ? 'bg-purple-50 text-purple-600 border-purple-100'
-                                            : appt.appointmentType === 'VIRTUAL'
+                                            : appt?.appointmentType === 'VIRTUAL'
                                                 ? 'bg-blue-50 text-blue-600 border-blue-100'
                                                 : 'bg-teal-50 text-teal-600 border-teal-100'
                                             }`}>
-                                            {appt.appointmentType === 'HOME_VISIT' ? <Home className="w-3 h-3" /> : (appt.appointmentType === 'VIRTUAL' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />)}
-                                            <span>{appt.appointmentType?.replace('_', ' ')}</span>
+                                            {appt?.appointmentType === 'HOME_VISIT' ? <Home className="w-3 h-3" /> : (appt?.appointmentType === 'VIRTUAL' ? <Video className="w-3 h-3" /> : <MapPin className="w-3 h-3" />)}
+                                            <span>{String(appt?.appointmentType || "").replace('_', ' ')}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyles(appt.status)}`}>
-                                            {appt.status}
+                                        <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyles(appt?.status)}`}>
+                                            {appt?.status}
                                         </span>
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-2">
-                                            {appt.status === 'Pending' && (
+                                            {appt?.status === 'Pending' && (
                                                 <>
                                                     <button
-                                                        onClick={() => handleStatusUpdate(appt._id, 'Approved')}
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'Approved')}
                                                         className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-sm border border-emerald-100"
                                                         title="Approve Appointment"
                                                     >
                                                         <CheckCircle className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleStatusUpdate(appt._id, 'Cancelled')}
+                                                        onClick={() => handleViewDetails(appt?._id)}
+                                                        className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-sm border border-blue-100"
+                                                        title="View Details"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'Cancelled')}
                                                         className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-sm border border-red-100"
                                                         title="Reject Appointment"
                                                     >
@@ -208,14 +242,20 @@ const ProviderAppointments = () => {
                                                     </button>
                                                 </>
                                             )}
-                                            {appt.status === 'Approved' && (
+                                            {appt?.status === 'Approved' && (
                                                 <button
-                                                    onClick={() => handleStatusUpdate(appt._id, 'Completed')}
+                                                    onClick={() => handleStatusUpdate(appt?._id, 'Completed')}
                                                     className="px-4 py-2 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200"
                                                 >
                                                     Mark Completed
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={() => handleViewDetails(appt?._id)}
+                                                className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-sm border border-blue-100"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
                                             <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 hover:text-slate-600 transition-all cursor-pointer border border-slate-100">
                                                 <MoreHorizontal className="w-4 h-4" />
                                             </button>
@@ -255,6 +295,8 @@ const ProviderAppointments = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal removed - navigating to page instead */}
         </div>
     );
 };

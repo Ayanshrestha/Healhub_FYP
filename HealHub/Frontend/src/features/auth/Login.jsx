@@ -32,12 +32,12 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
       const response = await login({
         email,
         password,
         role: selectedRole.toLowerCase()
-      });
+      }); try {
+   
 
       if (response.success) {
         localStorage.setItem("token", response.token);
@@ -48,8 +48,14 @@ export default function Login() {
           navigate("/admin/dashboard");
         } else if (selectedRole === "Clinic") {
           localStorage.setItem("clinic_token", response.token);
-          const status = (response.user.status || "ACTIVE").toUpperCase();
-          if (response.nextStep === "PAYMENT_REQUIRED" || (status !== "ACTIVE" && status !== "APPROVED")) {
+          // Store status for Protected Route checks
+          // Check profile.status (Clinic model) first, fallback to user.status
+          const status = (response.profile?.status || response.user.status || "PENDING_APPROVAL").toUpperCase();
+          localStorage.setItem("clinic_status", status);
+
+          if (status === "APPROVED_UNPAID") {
+            navigate("/clinic/subscription");
+          } else if (response.nextStep === "PAYMENT_REQUIRED" || status === "PENDING_APPROVAL" || status !== "ACTIVE") {
             navigate("/clinic/billing");
           } else {
             navigate("/clinic/dashboard");
@@ -146,7 +152,6 @@ export default function Login() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
                     className="block w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-800 font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 transition-all shadow-sm"
                   />
                 </div>

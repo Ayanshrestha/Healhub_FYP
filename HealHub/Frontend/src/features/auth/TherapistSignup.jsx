@@ -98,7 +98,6 @@ export default function TherapistSignup() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="therapist@example.com"
                 required
                 className="w-full px-4 py-3 border rounded-lg focus:ring-emerald-500"
               />

@@ -1,5 +1,6 @@
 import Otp from "../../models/otp.js";
 import sendEmail from "../../utils/sendEmail.js";
+import { sendSMS } from "../../utils/sendSMS.js";
 
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
@@ -37,8 +38,13 @@ export const sendOtp = async ({ email: rawEmail, phone: rawPhone }) => {
             throw new Error(emailResult.message || "Failed to send verification email");
         }
     } else {
-        // MOCK SMS SENDING
-        console.log(`[MOCK SMS] Sending OTP ${otp} to phone ${phone}`);
+        // REAL SMS SENDING
+        const smsResult = await sendSMS(phone, `Your HealHub verification code is: ${otp}. Valid for 5 minutes.`);
+
+        // Throw error only if token exists but sending failed
+        if (!smsResult.success && process.env.SMS_TOKEN) {
+            throw new Error(smsResult.message || "Failed to send verification SMS");
+        }
     }
 
     return { message: "OTP sent successfully", email, phone };

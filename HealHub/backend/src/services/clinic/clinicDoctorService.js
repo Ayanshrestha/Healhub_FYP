@@ -4,12 +4,23 @@ import Affiliation from "../../models/affiliation.js";
 import * as affiliationService from "../../services/provider/affiliationService.js";
 
 export const getAffiliatedDoctors = async (clinicId) => {
+    // 1. Get doctors via Affiliations (Modern Flow)
     const affiliations = await Affiliation.find({ clinicId, status: "ACTIVE", providerType: "Doctor" })
         .populate({
             path: "providerId",
             populate: { path: "userId", select: "fullName email profilePhoto" }
         });
-    return affiliations.map(a => a.providerId);
+    const affiliatedDoctors = affiliations.map(a => a.providerId);
+
+    // 2. Get doctors manually verified by this clinic (Legacy/Direct Flow)
+    const manualDoctors = await Doctor.find({ verifiedBy: clinicId })
+        .populate("userId", "fullName email profilePhoto");
+
+    // 3. Merge and deduplicate by _id
+    const allDoctors = [...affiliatedDoctors, ...manualDoctors];
+    const uniqueDoctors = Array.from(new Map(allDoctors.map(doctor => [doctor._id.toString(), doctor])).values());
+
+    return uniqueDoctors;
 };
 
 export const getAvailableDoctors = async (clinicId, specialization) => {

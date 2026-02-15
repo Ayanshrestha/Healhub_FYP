@@ -34,6 +34,8 @@ export const requestOtp = async (req, res) => {
 
 export const bookAppointment = async (req, res) => {
     try {
+        // req.user._id comes from the authMiddleware (JWT)
+        // Delegates the complex creation logic to the service layer
         const result = await appointmentService.createAppointment(req.user._id, req.body);
         res.status(201).json({
             success: true,
@@ -41,6 +43,7 @@ export const bookAppointment = async (req, res) => {
             data: result
         });
     } catch (error) {
+        // Handles errors like "Slot already taken" or "OTP Invalid"
         res.status(error.statusCode || 400).json({ success: false, message: error.message });
     }
 };

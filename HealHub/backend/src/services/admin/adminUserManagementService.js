@@ -1,5 +1,7 @@
 import User from "../../models/user.js";
 import Doctor from "../../models/doctor.js";
+import Patient from "../../models/patient.js";
+import Therapist from "../../models/therapist.js";
 import Clinic from "../../models/clinic.js";
 import AuditLog from "../../models/auditLog.js";
 
@@ -26,6 +28,37 @@ export const toggleUserStatus = async (userId, adminId) => {
         targetId: userId,
         details: `User account ${newStatus}`
     });
+
+    // Notify other admins about user status change
+    try {
+        const admins = await User.find({ role: "admin" });
+        const { createNotification } = await import("../common/notificationService.js");
+
+        // Fetch user name for clearer notification
+        let userName = user.email;
+        if (user.role === "doctor") {
+            const p = await Doctor.findOne({ userId: user._id });
+            if (p) userName = p.fullName;
+        } else if (user.role === "patient") {
+            const p = await Patient.findOne({ userId: user._id });
+            if (p) userName = p.fullName;
+        }
+
+        for (const admin of admins) {
+            // Don't notify the admin who performed the action? Actually, better to notify all to keep them in sync
+            await createNotification({
+                recipientId: admin._id,
+                recipientModel: "User",
+                type: "SYSTEM",
+                priority: newStatus === "suspended" ? "WARNING" : "SUCCESS",
+                title: `User Account ${newStatus === "suspended" ? "Suspended" : "Activated"} 🛡️`,
+                message: `Account for ${userName} (${user.role}) has been ${newStatus}.`,
+                link: `/admin/users/${user._id}`
+            });
+        }
+    } catch (notifyErr) {
+        console.error("Failed to send user status notification:", notifyErr);
+    }
 
     return user;
 };
@@ -56,12 +89,36 @@ export const fetchUsers = async (options = {}) => {
         .select("-password")
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit));
+        .limit(parseInt(limit))
+        .lean(); // Use lean for performance since we're modifying objects
 
     const total = await User.countDocuments(query);
 
+    // Resolve names for each user based on their role
+    const usersWithNames = await Promise.all(users.map(async (user) => {
+        let name = "N/A";
+        try {
+            if (user.role === "doctor") {
+                const profile = await Doctor.findOne({ userId: user._id }).select("fullName");
+                name = profile?.fullName || "N/A";
+            } else if (user.role === "therapist") {
+                const profile = await Therapist.findOne({ userId: user._id }).select("fullName");
+                name = profile?.fullName || "N/A";
+            } else if (user.role === "patient") {
+                const profile = await Patient.findOne({ userId: user._id }).select("fullName");
+                name = profile?.fullName || "N/A";
+            } else if (user.role === "clinic") {
+                const profile = await Clinic.findOne({ userId: user._id }).select("clinicName");
+                name = profile?.clinicName || "N/A";
+            }
+        } catch (err) {
+            console.error(`Error fetching profile for user ${user._id}:`, err);
+        }
+        return { ...user, name };
+    }));
+
     return {
-        users,
+        users: usersWithNames,
         pagination: {
             total,
             page: parseInt(page),

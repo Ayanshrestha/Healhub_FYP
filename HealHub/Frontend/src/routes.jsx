@@ -34,6 +34,7 @@ import ClinicProtectedRoute from "./features/clinic/components/ClinicProtectedRo
 import ProviderLayout from "./layouts/ProviderLayout";
 import ProviderDashboard from "./features/provider/pages/ProviderDashboard";
 import ProviderAppointments from "./features/provider/pages/ProviderAppointments";
+import ProviderAppointmentDetails from "./features/provider/pages/ProviderAppointmentDetails";
 import ProviderAffiliations from "./features/provider/pages/ProviderAffiliations";
 import ProviderMessages from "./features/provider/pages/ProviderMessages";
 import ProviderEarnings from "./features/provider/pages/ProviderEarnings";
@@ -50,6 +51,7 @@ import MedicineReminders from "./features/patient/pages/MedicineReminders";
 import PatientMessages from "./features/patient/pages/PatientMessages";
 import PatientReports from "./features/patient/pages/PatientReports";
 import PatientProfile from "./features/patient/pages/PatientProfile";
+import PatientSettings from "./features/patient/pages/PatientSettings";
 import PatientPaymentVerification from "./features/patient/pages/PatientPaymentVerification";
 import PatientProtectedRoute from "./features/patient/components/PatientProtectedRoute";
 
@@ -80,6 +82,7 @@ export default function AppRoutes() {
       <Route path="/clinic/appointments" element={<ClinicProtectedRoute><AppointmentManagementPage /></ClinicProtectedRoute>} />
       <Route path="/clinic/patients" element={<ClinicProtectedRoute><PatientManagementPage /></ClinicProtectedRoute>} />
       <Route path="/clinic/analytics" element={<ClinicProtectedRoute><ClinicAnalyticsPage /></ClinicProtectedRoute>} />
+      <Route path="/clinic/subscription" element={<ClinicSubscription />} />
       <Route path="/clinic/billing" element={<SubscriptionBillingPage />} />
       <Route path="/clinic/profile" element={<ClinicProtectedRoute><ClinicProfilePage /></ClinicProtectedRoute>} />
       <Route path="/clinic/settings" element={<ClinicProtectedRoute><SettingsPage /></ClinicProtectedRoute>} />
@@ -96,6 +99,7 @@ export default function AppRoutes() {
         <Route path="messages/:appointmentId" element={<PatientMessages />} />
         <Route path="reports" element={<PatientReports />} />
         <Route path="profile" element={<PatientProfile />} />
+        <Route path="settings" element={<PatientSettings />} />
         <Route path="payment-verification" element={<PatientPaymentVerification />} />
         {/* Fallback */}
         <Route path="*" element={<PatientDashboard />} />
@@ -106,6 +110,7 @@ export default function AppRoutes() {
         <Route index element={<ProviderDashboard />} />
         <Route path="dashboard" element={<ProviderDashboard />} />
         <Route path="appointments" element={<ProviderAppointments />} />
+        <Route path="appointments/:id" element={<ProviderAppointmentDetails />} />
         <Route path="affiliations" element={<ProviderAffiliations />} />
         <Route path="messages" element={<ProviderMessages />} />
         <Route path="earnings" element={<ProviderEarnings />} />

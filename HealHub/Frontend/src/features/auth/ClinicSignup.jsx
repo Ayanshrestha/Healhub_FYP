@@ -132,7 +132,6 @@ export default function ClinicSignup() {
                         required
                         value={form.email}
                         onChange={handleChange}
-                        placeholder="clinic@example.com"
                         className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all shadow-sm"
                       />
                     </div>
