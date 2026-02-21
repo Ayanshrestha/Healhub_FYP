@@ -1,6 +1,8 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+export const BASE_URL = "http://localhost:5000";
+export const API_BASE_URL = `${BASE_URL}/api`;
+export const SOCKET_URL = BASE_URL;
 
 /**
  * Centralized Axios Instance
@@ -9,25 +11,43 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true, // Required for HttpOnly cookies if used
+    timeout: 15000, // 15s timeout to prevent infinite loading
 });
 
 // Request Interceptor: Attach Token dynamically
 api.interceptors.request.use(
     (config) => {
-        // Select the appropriate token based on the user's role OR the request URL
         let token = null;
         const user = JSON.parse(localStorage.getItem("user") || "null");
-        const role = user?.role?.toLowerCase();
+        const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null");
         const url = config.url || "";
+        const pathname = window.location.pathname;
 
-        if (role === "admin" || url.includes("/admin/")) {
+        // Determine active role from path OR user data
+        const isAdminPath = url.includes("/admin/") || pathname.startsWith('/admin');
+        const isClinicPath = url.includes("/clinic/") || pathname.startsWith('/clinic');
+        const isProviderPath = url.includes("/provider/") || pathname.startsWith('/provider');
+
+        // Logic 1: Use Path-based priority
+        if (isAdminPath) {
             token = localStorage.getItem("adminToken");
-        } else if (role === "clinic" || url.includes("/clinic/")) {
+        } else if (isClinicPath) {
             token = localStorage.getItem("clinic_token");
-        } else if (role === "doctor" || role === "therapist" || url.includes("/provider/")) {
+        } else if (isProviderPath) {
             token = localStorage.getItem("provider_token");
-        } else {
-            // Default to the standard patient/common token
+        }
+
+        // Logic 2: If no token found by path, use Role-based fallback
+        if (!token) {
+            const role = (user?.role || adminUser?.role)?.toString().toLowerCase();
+            if (role === "admin") token = localStorage.getItem("adminToken");
+            else if (role === "clinic") token = localStorage.getItem("clinic_token");
+            else if (role === "doctor" || role === "therapist") token = localStorage.getItem("provider_token");
+            else token = localStorage.getItem("token");
+        }
+
+        // Final Fallback: The legacy/generic 'token' key
+        if (!token) {
             token = localStorage.getItem("token");
         }
 
@@ -39,26 +59,89 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+// --- Session Management ---
+
+// Guard to prevent multiple concurrent redirects or session wipes
+let isLoggingOut = false;
+
+/**
+ * Centered logic to clear all storage to prevent session ghosting
+ */
+export const clearSession = () => {
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+
+    console.warn("🧹 Clearing all persistent sessions...");
+    localStorage.removeItem("provider_token");
+    localStorage.removeItem("clinic_token");
+    localStorage.removeItem("clinic_status");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // Reset the flag after a short delay to allow for fresh logins
+    setTimeout(() => {
+        isLoggingOut = false;
+    }, 2000);
+};
+
 // Response Interceptor: Handle Global Errors (like 401)
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        if (error.response?.status === 401) {
-            console.warn("🔐 Session Expired or Unauthorized. Redirecting to login...");
+        const status = error.response?.status;
+        const url = error.config?.url || "";
+        const isLoginPage = window.location.pathname.includes("/login") || window.location.pathname.includes("/admin/login");
 
-            // Clear role-specific tokens on 401
-            localStorage.removeItem("provider_token");
-            localStorage.removeItem("clinic_token");
-            localStorage.removeItem("adminToken");
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
+        if (status === 401) {
+            // If we are already in the process of logging out, just reject
+            if (isLoggingOut) return Promise.reject(error);
 
-            // Redirect to login using window.location for hard redirect
-            // This ensures all state is cleared and the user is forced to re-auth
-            if (!window.location.pathname.includes("/login")) {
+            // 1. Background Polling Guard: Don't kill session for background noise
+            const isBackgroundRequest =
+                url.includes("/notifications") ||
+                url.includes("/unread-counts") ||
+                url.includes("/messages/unread");
+
+            if (isBackgroundRequest) {
+                console.warn(`⚠️ Background 401 at ${url} - ignoring to preserve session.`);
+                return Promise.reject(error);
+            }
+
+            // 2. Auth Page Guard: Don't trigger logout if the failure IS an auth attempt
+            const isAuthRequest =
+                url.includes("/auth/login") ||
+                url.includes("/admin/login") ||
+                url.includes("/clinic/auth/login");
+
+            if (isLoginPage || isAuthRequest) {
+                return Promise.reject(error);
+            }
+
+            // 3. Token Check: If we don't even have a token, we are effectively "logged out"
+            const hasAnyToken = !!(
+                localStorage.getItem("token") ||
+                localStorage.getItem("clinic_token") ||
+                localStorage.getItem("provider_token") ||
+                localStorage.getItem("adminToken")
+            );
+
+            if (!hasAnyToken) {
+                if (!isLoginPage) window.location.href = "/login";
+                return Promise.reject(error);
+            }
+
+            // 4. Critical Block: Session is genuinely expired or invalid
+            console.error(`🔴 Session Invalid (401) at ${url}. Triggering logout...`);
+            clearSession();
+
+            // Only redirect if we're not already heading there
+            if (!isLoginPage) {
                 window.location.href = "/login";
             }
         }
+
         return Promise.reject(error);
     }
 );

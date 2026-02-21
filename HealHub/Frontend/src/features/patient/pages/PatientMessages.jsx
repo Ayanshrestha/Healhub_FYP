@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
     Send,
     Paperclip,
@@ -17,15 +17,41 @@ import {
 } from "lucide-react";
 import io from "socket.io-client";
 import patientService from "../services/patientService";
+import { BASE_URL, SOCKET_URL } from "../../../services/api";
+
+const groupMessagesByDate = (messages) => {
+    const groups = {};
+    messages.forEach(msg => {
+        const date = new Date(msg.createdAt).toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const today = new Date().toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        let label = date;
+        if (date === today) label = "TODAY";
+        else if (date === yesterday) label = "YESTERDAY";
+
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(msg);
+    });
+    return groups;
+};
 
 const PatientMessages = () => {
     const { appointmentId } = useParams();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [messages, setMessages] = useState([]);
     const [appointment, setAppointment] = useState(null);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [activeContext, setActiveContext] = useState(searchParams.get("context") || "DIRECT"); // DIRECT or CLINICAL
     const scrollRef = useRef();
     const socket = useRef();
 
@@ -34,20 +60,36 @@ const PatientMessages = () => {
             try {
                 const [appDetails, msgData] = await Promise.all([
                     patientService.getAppointmentDetails(appointmentId),
-                    patientService.getMessages(appointmentId)
+                    patientService.getMessages(appointmentId, activeContext)
                 ]);
                 setAppointment(appDetails);
                 setMessages(Array.isArray(msgData) ? msgData : []);
 
                 // Socket setup
-                socket.current = io("http://localhost:5000");
-                socket.current.emit("join_appointment_room", appointmentId);
+                socket.current = io(SOCKET_URL);
+                socket.current.emit("join_chat", appointmentId.toString());
 
-                socket.current.on("receive_message", (msg) => {
-                    if (msg.appointmentId === appointmentId) {
-                        setMessages(prev => [...prev, msg]);
+                socket.current.on("new_message", (msg) => {
+                    if (msg.appointmentId.toString() === appointmentId.toString() && msg.context === activeContext) {
+                        setMessages(prev => {
+                            // 1. Check if we already have this message by _id
+                            if (prev.some(m => m._id === msg._id)) return prev;
+
+                            // 2. Check if we have an optimistic message for this tempId
+                            if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
+                                return prev.map(m => m.tempId === msg.tempId ? msg : m);
+                            }
+
+                            // 3. Otherwise add it
+                            return [...prev, msg];
+                        });
+                        // Automatically mark as read if viewing
+                        patientService.markMessagesRead(appointmentId, activeContext);
                     }
                 });
+
+                // Initial mark as read
+                patientService.markMessagesRead(appointmentId, activeContext);
             } catch (error) {
                 console.error("Chat init error:", error);
             } finally {
@@ -60,24 +102,43 @@ const PatientMessages = () => {
         return () => {
             if (socket.current) socket.current.disconnect();
         };
-    }, [appointmentId]);
+    }, [appointmentId, activeContext]);
 
     useEffect(() => {
         scrollRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    const handleContextChange = (newContext) => {
+        setActiveContext(newContext);
+        setSearchParams({ context: newContext });
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || sending) return;
 
-        setSending(true);
+        const tempId = Date.now().toString();
+        const optimisticMsg = {
+            _id: tempId,
+            tempId,
+            content: newMessage,
+            sender: "PATIENT",
+            createdAt: new Date().toISOString(),
+            context: activeContext,
+            sending: true
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+        setNewMessage("");
+
         try {
-            const msg = await patientService.sendMessage(appointmentId, newMessage);
-            // Socket will handle the update if backend emits to sender, but usually we add local opt and socket handles broadcast
-            // setMessages(prev => [...prev, msg]); // Backend usually emits back
-            setNewMessage("");
+            await patientService.sendMessage(appointmentId, newMessage, "TEXT", [], activeContext, tempId);
+            // The socket will replace the optimistic message.
         } catch (error) {
             console.error("Send error:", error);
+            // Remove optimistic message on error
+            setMessages(prev => prev.filter(m => m._id !== tempId));
+            setNewMessage(optimisticMsg.content);
         } finally {
             setSending(false);
         }
@@ -99,22 +160,45 @@ const PatientMessages = () => {
                     <button onClick={() => navigate("/patient/appointments")} className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-teal-50 hover:text-teal-600 transition-all"><ArrowLeft className="w-5 h-5" /></button>
                     <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 border-2 border-white shadow-sm">
-                            <img src={appointment.doctorId?.profilePhoto || `https://ui-avatars.com/api/?name=${appointment.doctorId?.fullName}&background=0D9488&color=fff`} className="w-full h-full object-cover" alt="" />
+                            <img
+                                src={activeContext === "DIRECT"
+                                    ? (appointment.providerId?.profilePhoto || `https://ui-avatars.com/api/?name=${appointment.providerId?.fullName}&background=0D9488&color=fff`)
+                                    : (appointment.clinicId?.logo || `https://ui-avatars.com/api/?name=${appointment.clinicId?.clinicName}&background=0F172A&color=fff`)}
+                                className="w-full h-full object-cover"
+                                alt=""
+                            />
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h4 className="font-black text-slate-800 tracking-tight uppercase italic">{appointment.doctorId?.fullName}</h4>
+                                <h4 className="font-black text-slate-800 tracking-tight uppercase italic">
+                                    {activeContext === "DIRECT" ? appointment.providerId?.fullName : appointment.clinicId?.clinicName}
+                                </h4>
                                 <ShieldCheck className="w-4 h-4 text-teal-500 fill-teal-500/10" />
                             </div>
-                            <p className="text-[10px] font-black text-teal-500 uppercase tracking-widest">{appointment.doctorId?.specialization || "General Physician"}</p>
+                            <p className="text-[10px] font-black text-teal-500 uppercase tracking-widest">
+                                {activeContext === "DIRECT"
+                                    ? (appointment.providerId?.specialization || "General Physician")
+                                    : "Clinical Administration"}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                    <button className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-teal-50 hover:text-teal-600 transition-all"><Phone className="w-5 h-5" /></button>
-                    <button className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-teal-50 hover:text-teal-600 transition-all"><Video className="w-5 h-5" /></button>
-                    <button className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-50 transition-all"><MoreVertical className="w-5 h-5" /></button>
+                    <div className="flex bg-slate-50 p-1 rounded-xl">
+                        <button
+                            onClick={() => handleContextChange("DIRECT")}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeContext === "DIRECT" ? "bg-white text-teal-600 shadow-sm" : "text-slate-400 opacity-60 hover:opacity-100"}`}
+                        >
+                            Doctor
+                        </button>
+                        <button
+                            onClick={() => handleContextChange("CLINICAL")}
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeContext === "CLINICAL" ? "bg-white text-teal-600 shadow-sm" : "text-slate-400 opacity-60 hover:opacity-100"}`}
+                        >
+                            Clinic
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -137,43 +221,59 @@ const PatientMessages = () => {
                     <p className="text-slate-400 text-xs font-black uppercase tracking-widest max-w-xs mx-auto">This conversation is encrypted. Healthcare professionals are available for your assistance.</p>
                 </div>
 
-                {messages.map((msg, i) => {
-                    const isPatient = msg.senderType === "patient" || msg.senderType === "Patient";
-                    return (
-                        <div key={i} className={`flex ${isPatient ? "justify-end" : "justify-start"}`}>
-                            <div className={`max-w-[70%] group`}>
-                                <div className={`
-                                    p-5 rounded-[2rem] font-medium text-[15px] leading-relaxed relative
-                                    ${isPatient
-                                        ? "bg-slate-900 text-white shadow-xl shadow-slate-200/50 rounded-tr-none"
-                                        : "bg-white border border-slate-100 text-slate-700 shadow-sm rounded-tl-none"
-                                    }
-                                `}>
-                                    {msg.content}
-
-                                    {/* Attachments */}
-                                    {msg.attachments?.map((att, index) => (
-                                        <div key={index} className={`mt-4 p-4 rounded-2xl flex items-center gap-4 ${isPatient ? "bg-white/10" : "bg-slate-50"}`}>
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPatient ? "bg-white/20" : "bg-teal-100 text-teal-600"}`}>
-                                                <FileText className="w-5 h-5" />
-                                            </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p className="text-xs font-black uppercase tracking-wider truncate">{att.originalName}</p>
-                                                <p className="text-[10px] opacity-60">Medical Document</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className={`mt-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isPatient ? "justify-end text-slate-300" : "justify-start text-slate-400"}`}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    {isPatient && (
-                                        msg.readStatus ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Check className="w-3 h-3" />
-                                    )}
-                                </div>
+                {Object.entries(groupMessagesByDate(messages)).map(([date, group]) => (
+                    <div key={date} className="space-y-8">
+                        <div className="flex items-center justify-center my-10">
+                            <div className="bg-slate-100 px-4 py-1.5 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border border-white shadow-sm">
+                                {date}
                             </div>
                         </div>
-                    );
-                })}
+                        {group.map((msg, i) => {
+                            const isPatient = msg.sender === "PATIENT";
+                            return (
+                                <div key={msg._id || i} className={`flex ${isPatient ? "justify-end" : "justify-start"} animate-fadeIn`}>
+                                    <div className={`max-w-[70%] group`}>
+                                        <div className={`
+                                            p-5 rounded-[2rem] font-medium text-[15px] leading-relaxed relative
+                                            ${isPatient
+                                                ? "bg-slate-900 text-white shadow-xl shadow-slate-200/50 rounded-tr-none"
+                                                : "bg-white border border-slate-100 text-slate-700 shadow-sm rounded-tl-none"
+                                            }
+                                        `}>
+                                            {msg.content}
+
+                                            {/* Attachments */}
+                                            {msg.attachments?.map((att, index) => (
+                                                <a
+                                                    key={index}
+                                                    href={`${BASE_URL}${att.url}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className={`mt-4 p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02] ${isPatient ? "bg-white/10 text-white" : "bg-slate-50 text-slate-700 hover:bg-teal-50"}`}
+                                                >
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPatient ? "bg-white/20" : "bg-teal-100 text-teal-600"}`}>
+                                                        <FileText className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="flex-1 overflow-hidden text-left">
+                                                        <p className="text-xs font-black uppercase tracking-wider truncate">{att.name}</p>
+                                                        <p className="text-[10px] opacity-60">Medical Document</p>
+                                                    </div>
+                                                </a>
+                                            ))}
+                                        </div>
+                                        <div className={`mt-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${isPatient ? "justify-end text-slate-300" : "justify-start text-slate-400"}`}>
+                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {isPatient && (
+                                                msg.sending ? <Loader2 className="w-3 h-3 animate-spin text-teal-500" /> :
+                                                    msg.readAt ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Check className="w-3 h-3" />
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ))}
                 <div ref={scrollRef}></div>
             </div>
 
@@ -185,7 +285,7 @@ const PatientMessages = () => {
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type your health query here..."
+                        placeholder={activeContext === "DIRECT" ? "Type your health query to doctor..." : "Response to clinic instructions..."}
                         className="flex-1 bg-transparent border-none outline-none px-2 font-medium text-slate-700 placeholder:text-slate-400"
                     />
                     <button

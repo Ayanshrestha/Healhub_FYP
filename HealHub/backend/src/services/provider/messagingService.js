@@ -2,42 +2,62 @@ import Message from "../../models/message.js";
 import Appointment from "../../models/appointment.js";
 import Affiliation from "../../models/affiliation.js";
 import { emitToRoom } from "../../config/socket.js";
+import mongoose from "mongoose";
 
 export const sendMessage = async (messageData) => {
-    const { patientId, providerId, appointmentId } = messageData;
+    const { appointmentId, content, type, attachments, providerId, tempId } = messageData;
 
-    // Security: Validate that an appointment exists between these parties
+    // 1. Verify Appointment existence and participant
     const appointment = await Appointment.findOne({
         _id: appointmentId,
-        patientId,
-        providerId
+        providerId: providerId
     });
 
     if (!appointment) {
-        throw new Error("Cannot message: No valid appointment found between parties.");
+        const error = new Error("Appointment not found or you are not authorized to send messages in this chat.");
+        error.statusCode = 404;
+        throw error;
     }
 
-    // STEP 5: Enforce ACTIVE affiliation between the provider and the clinic of the appointment
-    const affiliation = await Affiliation.findOne({
-        clinicId: appointment.clinicId,
+    const message = await Message.create({
+        patientId: appointment.patientId,
         providerId: appointment.providerId,
-        status: "ACTIVE"
+        providerType: appointment.providerType,
+        clinicId: appointment.clinicId,
+        appointmentId: new mongoose.Types.ObjectId(appointmentId),
+        sender: "PROVIDER",
+        content,
+        type: type || "TEXT",
+        attachments: attachments || [],
+        context: "DIRECT"
     });
 
-    if (!affiliation) {
-        throw new Error("Cannot message: Provider does not have an ACTIVE affiliation with this clinic.");
-    }
-
-    const message = await Message.create(messageData);
-
     // Real-time emission
-    emitToRoom(appointmentId.toString(), "new_message", message);
+    emitToRoom(appointmentId.toString(), "new_message", {
+        ...message.toObject(),
+        tempId
+    });
 
     return message;
 };
 
-export const getConversationHistory = async (appointmentId) => {
-    return await Message.find({ appointmentId }).sort({ createdAt: 1 });
+export const getConversationHistory = async (appointmentId, providerId) => {
+    // Verify provider participation before returning history
+    const appointment = await Appointment.findOne({
+        _id: appointmentId,
+        providerId: providerId
+    });
+
+    if (!appointment) {
+        const error = new Error("Access denied: You are not the provider for this appointment.");
+        error.statusCode = 403;
+        throw error;
+    }
+
+    return await Message.find({
+        appointmentId: new mongoose.Types.ObjectId(appointmentId),
+        context: "DIRECT"
+    }).sort({ createdAt: 1 });
 };
 
 export const markAsRead = async (messageIds) => {

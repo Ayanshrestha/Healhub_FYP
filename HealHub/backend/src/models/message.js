@@ -28,7 +28,7 @@ const messageSchema = new mongoose.Schema(
         },
         sender: {
             type: String,
-            enum: ["PATIENT", "PROVIDER"],
+            enum: ["PATIENT", "PROVIDER", "CLINIC"],
             required: true,
         },
         content: {
@@ -37,13 +37,18 @@ const messageSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["TEXT", "PRESCRIPTION", "REPORT"],
+            enum: ["TEXT", "PRESCRIPTION", "REPORT", "IMAGE"],
             default: "TEXT",
         },
         attachments: [{
             name: String,
             url: String,
         }],
+        context: {
+            type: String,
+            enum: ["DIRECT", "CLINICAL"],
+            default: "DIRECT",
+        },
         readAt: {
             type: Date,
         }

@@ -6,6 +6,7 @@ import patientService from "../features/patient/services/patientService";
 import * as adminService from "../features/admin/services/adminAuthService";
 import clinicService from "../features/clinic/services/clinicService";
 import * as providerService from "../features/provider/services/providerService";
+import { SOCKET_URL } from "../services/api";
 
 const SocketContext = createContext();
 
@@ -24,12 +25,11 @@ export const SocketProvider = ({ children }) => {
         const user = JSON.parse(localStorage.getItem("user") || "null");
         const adminUser = JSON.parse(localStorage.getItem("adminUser") || "null");
 
-        // Prioritize Admin for admin routes
-        if (window.location.pathname.startsWith('/admin')) {
-            setCurrentUser(adminUser);
-        } else {
-            // For other roles, use the 'user' object which is shared by Patient, Clinic, Provider
-            setCurrentUser(user || adminUser);
+        const targetUser = window.location.pathname.startsWith('/admin') ? adminUser : (user || adminUser);
+
+        // Only update if something actually changed to avoid re-running initialization effects
+        if (targetUser?._id !== currentUser?._id || targetUser?.role !== currentUser?.role) {
+            setCurrentUser(targetUser);
         }
     };
 
@@ -77,7 +77,7 @@ export const SocketProvider = ({ children }) => {
         fetchHistory();
 
         // Initialize socket connection
-        const newSocket = io("http://localhost:5000", {
+        const newSocket = io(SOCKET_URL, {
             withCredentials: true
         });
 

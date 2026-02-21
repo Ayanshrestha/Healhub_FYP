@@ -4,8 +4,15 @@ import * as providerService from "../../services/provider/providerService.js";
 export const sendMessage = async (req, res) => {
     try {
         const provider = await providerService.getProviderProfile(req.user._id, req.user.role);
+        if (!provider) {
+            return res.status(404).json({ success: false, message: "Provider profile not found" });
+        }
+
         const messageData = {
-            ...req.body,
+            appointmentId: req.body.appointmentId,
+            content: req.body.content,
+            type: req.body.type,
+            attachments: req.body.attachments,
             providerId: provider._id,
             providerType: req.user.role === "doctor" ? "Doctor" : "Therapist",
             sender: "PROVIDER"
@@ -21,7 +28,13 @@ export const sendMessage = async (req, res) => {
 export const getHistory = async (req, res) => {
     try {
         const { appointmentId } = req.params;
-        const history = await messagingService.getConversationHistory(appointmentId);
+        const provider = await providerService.getProviderProfile(req.user._id, req.user.role);
+
+        if (!provider) {
+            return res.status(404).json({ success: false, message: "Provider profile not found" });
+        }
+
+        const history = await messagingService.getConversationHistory(appointmentId, provider._id);
         res.status(200).json({ success: true, history });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

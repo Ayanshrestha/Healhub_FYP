@@ -15,59 +15,87 @@ import {
     MessageSquare
 } from "lucide-react";
 import * as providerService from "../services/providerService";
+import { SOCKET_URL } from "../../../services/api";
+
+import io from "socket.io-client";
+
+const groupMessagesByDate = (messages) => {
+    const groups = {};
+    messages.forEach(msg => {
+        const date = new Date(msg.createdAt).toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const today = new Date().toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        const yesterday = new Date(Date.now() - 86400000).toLocaleDateString("en-US", {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        let label = date;
+        if (date === today) label = "TODAY";
+        else if (date === yesterday) label = "YESTERDAY";
+
+        if (!groups[label]) groups[label] = [];
+        groups[label].push(msg);
+    });
+    return groups;
+};
 
 const ProviderMessages = () => {
-    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [selectedChat, setSelectedChat] = useState(null); // Now stores the appointment/chat object
     const [messages, setMessages] = useState([]);
-    const [patients, setPatients] = useState([]);
+    const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
     const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
     const messagesEndRef = useRef(null);
+    const socket = useRef();
 
     useEffect(() => {
-        const fetchPatients = async () => {
+        const fetchChats = async () => {
             try {
                 setLoading(true);
-                // We use appointments to get the list of patients the provider has interacted with
                 const res = await providerService.getAppointments();
 
-                // Extract unique patients
-                const uniquePatients = [];
-                const patientIds = new Set();
+                // Group by appointment for real-time room consistency
+                const activeChats = (res.appointments || []).map(appt => ({
+                    appointmentId: appt._id,
+                    patient: appt.patientId,
+                    lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
+                    status: appt.status,
+                    recentMessage: "Click to view chat"
+                }));
 
-                (res.appointments || []).forEach(appt => {
-                    if (appt.patientId && !patientIds.has(appt.patientId._id)) {
-                        patientIds.add(appt.patientId._id);
-                        uniquePatients.push({
-                            ...appt.patientId,
-                            lastMessage: "Click to start conversation",
-                            lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
-                            status: appt.status
-                        });
-                    }
-                });
-
-                setPatients(uniquePatients);
-                if (uniquePatients.length > 0) setSelectedPatient(uniquePatients[0]);
+                setChats(activeChats);
+                if (activeChats.length > 0) setSelectedChat(activeChats[0]);
             } catch (err) {
-                console.error("Fetch patients error:", err);
+                console.error("Fetch chats error:", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchPatients();
+        fetchChats();
+
+        // Initialize socket
+        socket.current = io(SOCKET_URL);
+
+        return () => {
+            if (socket.current) socket.current.disconnect();
+        };
     }, []);
 
     useEffect(() => {
-        if (selectedPatient) {
+        if (selectedChat) {
             const fetchChatHistory = async () => {
                 try {
                     setChatLoading(true);
-                    // In a real app, we'd fetch by patient ID. Here we use the service's mock history.
-                    const res = await providerService.getMessageHistory(selectedPatient._id);
-                    setMessages(res.messages || []);
+                    const res = await providerService.getMessageHistory(selectedChat.appointmentId);
+                    setMessages(res.history || res.messages || []);
+
+                    // Join the specific chat room
+                    socket.current.emit("join_chat", selectedChat.appointmentId.toString());
                 } catch (err) {
                     console.error("Fetch chat history error:", err);
                 } finally {
@@ -75,8 +103,44 @@ const ProviderMessages = () => {
                 }
             };
             fetchChatHistory();
+
+            // Listen for messages in this room
+            socket.current.on("new_message", (msg) => {
+                if (msg.appointmentId.toString() === selectedChat.appointmentId.toString()) {
+                    setMessages(prev => {
+                        // 1. Duplicate check
+                        if (prev.some(m => m._id === msg._id)) return prev;
+
+                        // 2. Optimistic replacement
+                        if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
+                            return prev.map(m => m.tempId === msg.tempId ? msg : m);
+                        }
+
+                        return [...prev, msg];
+                    });
+
+                    // Update sidebar
+                    setChats(prevChats => prevChats.map(c => {
+                        if (c.appointmentId.toString() === msg.appointmentId.toString()) {
+                            return {
+                                ...c,
+                                recentMessage: msg.content,
+                                lastTime: new Date(msg.createdAt).toLocaleDateString()
+                            };
+                        }
+                        return c;
+                    }));
+
+                    // Mark as read if user is looking at it
+                    providerService.markMessagesRead(selectedChat.appointmentId);
+                }
+            });
+
+            return () => {
+                socket.current.off("new_message");
+            };
         }
-    }, [selectedPatient]);
+    }, [selectedChat]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,40 +148,39 @@ const ProviderMessages = () => {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !selectedPatient) return;
+        if (!newMessage.trim() || !selectedChat) return;
 
-        const msgData = {
-            receiverId: selectedPatient._id,
-            content: newMessage,
-            senderRole: 'provider'
-        };
-
-        // UI Optimistic Update
+        const tempId = Date.now().toString();
         const optimisticMsg = {
-            _id: Date.now().toString(),
-            senderId: 'me',
+            _id: tempId,
+            tempId,
             content: newMessage,
+            sender: "PROVIDER",
             createdAt: new Date().toISOString(),
-            status: 'sent'
+            sending: true
         };
 
         setMessages(prev => [...prev, optimisticMsg]);
         setNewMessage("");
 
+        const msgData = {
+            appointmentId: selectedChat.appointmentId,
+            content: newMessage,
+            type: "TEXT",
+            tempId
+        };
+
         try {
             await providerService.sendMessage(msgData);
-            // In a real socket environment, we'd wait for ack. 
-            // For now, we'll mark it as 'delivered' after a brief delay
-            setTimeout(() => {
-                setMessages(prev => prev.map(m => m._id === optimisticMsg._id ? { ...m, status: 'delivered' } : m));
-            }, 1000);
         } catch (err) {
             console.error("Send message error:", err);
+            setMessages(prev => prev.filter(m => m._id !== tempId));
+            alert("Failed to send message");
         }
     };
 
-    const filteredPatients = patients.filter(p =>
-        p.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredChats = chats.filter(c =>
+        c.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     if (loading) {
@@ -147,28 +210,32 @@ const ProviderMessages = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
-                    {filteredPatients.length > 0 ? filteredPatients.map((patient) => (
+                    {filteredChats.length > 0 ? filteredChats.map((chat) => (
                         <button
-                            key={patient._id}
-                            onClick={() => setSelectedPatient(patient)}
-                            className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedPatient?._id === patient._id
+                            key={chat.appointmentId}
+                            onClick={() => setSelectedChat(chat)}
+                            className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedChat?.appointmentId === chat.appointmentId
                                 ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 scale-[1.02]'
                                 : 'bg-white hover:bg-teal-50/50 text-gray-900'
                                 }`}
                         >
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black shadow-sm ${selectedPatient?._id === patient._id ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
+                            <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center text-sm font-black shadow-sm ${selectedChat?.appointmentId === chat.appointmentId ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
                                 }`}>
-                                {patient.fullName?.charAt(0)}
+                                {chat.patient?.profilePhoto ? (
+                                    <img src={chat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
+                                ) : (
+                                    chat.patient?.fullName?.charAt(0)
+                                )}
                             </div>
                             <div className="flex-1 text-left">
-                                <p className="font-bold text-sm truncate">{patient.fullName}</p>
-                                <p className={`text-[10px] font-bold truncate ${selectedPatient?._id === patient._id ? 'text-teal-100' : 'text-gray-400 italic'}`}>
-                                    {patient.lastMessage}
+                                <p className="font-bold text-sm truncate">{chat.patient?.fullName}</p>
+                                <p className={`text-[10px] font-bold truncate ${selectedChat?.appointmentId === chat.appointmentId ? 'text-teal-100' : 'text-gray-400 italic'}`}>
+                                    {chat.recentMessage}
                                 </p>
                             </div>
                             <div className="text-[8px] font-black uppercase flex flex-col items-end space-y-1">
-                                <span className={selectedPatient?._id === patient._id ? 'text-teal-200' : 'text-gray-300'}>{patient.lastTime}</span>
-                                {patient.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
+                                <span className={selectedChat?.appointmentId === chat.appointmentId ? 'text-teal-200' : 'text-gray-300'}>{chat.lastTime}</span>
+                                {chat.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
                             </div>
                         </button>
                     )) : (
@@ -182,16 +249,20 @@ const ProviderMessages = () => {
 
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col bg-white">
-                {selectedPatient ? (
+                {selectedChat ? (
                     <>
                         {/* Chat Header */}
                         <div className="p-6 border-b border-gray-50 flex items-center justify-between">
                             <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 text-sm font-black border border-teal-100 shadow-sm">
-                                    {selectedPatient.fullName?.charAt(0)}
+                                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-teal-50 flex items-center justify-center text-teal-600 text-sm font-black border border-teal-100 shadow-sm">
+                                    {selectedChat.patient?.profilePhoto ? (
+                                        <img src={selectedChat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
+                                    ) : (
+                                        selectedChat.patient?.fullName?.charAt(0)
+                                    )}
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-gray-900 leading-none mb-1">{selectedPatient.fullName}</h3>
+                                    <h3 className="font-black text-gray-900 leading-none mb-1">{selectedChat.patient?.fullName}</h3>
                                     <div className="flex items-center space-x-2">
                                         <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Sync Connected</span>
@@ -218,29 +289,41 @@ const ProviderMessages = () => {
                                     <Loader2 className="w-8 h-8 text-teal-200 animate-spin" />
                                 </div>
                             ) : messages.length > 0 ? (
-                                messages.map((msg) => (
-                                    <div
-                                        key={msg._id}
-                                        className={`flex ${msg.senderId === 'me' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
-                                    >
-                                        <div className={`max-w-[70%] space-y-1`}>
-                                            <div className={`p-4 rounded-[1.5rem] font-bold text-sm shadow-sm ${msg.senderId === 'me'
-                                                ? 'bg-teal-600 text-white rounded-tr-none'
-                                                : 'bg-white text-gray-800 border border-gray-50 rounded-tl-none'
-                                                }`}>
-                                                {msg.content}
-                                            </div>
-                                            <div className={`flex items-center space-x-1.5 px-2 ${msg.senderId === 'me' ? 'justify-end' : 'justify-start'}`}>
-                                                <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">
-                                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                                {msg.senderId === 'me' && (
-                                                    msg.status === 'delivered'
-                                                        ? <CheckCheck className="w-3 h-3 text-teal-400" />
-                                                        : <Check className="w-3 h-3 text-gray-200" />
-                                                )}
+                                Object.entries(groupMessagesByDate(messages)).map(([date, group]) => (
+                                    <div key={date} className="space-y-6">
+                                        <div className="flex items-center justify-center my-8">
+                                            <div className="bg-slate-100 px-4 py-1 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest border border-slate-50 shadow-sm">
+                                                {date}
                                             </div>
                                         </div>
+                                        {group.map((msg) => {
+                                            const isMe = msg.sender === "PROVIDER";
+                                            return (
+                                                <div
+                                                    key={msg._id}
+                                                    className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn`}
+                                                >
+                                                    <div className={`max-w-[70%] space-y-1`}>
+                                                        <div className={`p-4 rounded-[1.5rem] font-bold text-sm shadow-sm ${isMe
+                                                            ? 'bg-teal-600 text-white rounded-tr-none shadow-teal-100/50'
+                                                            : 'bg-white text-gray-800 border border-gray-50 rounded-tl-none'
+                                                            }`}>
+                                                            {msg.content}
+                                                        </div>
+                                                        <div className={`flex items-center space-x-1.5 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">
+                                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                            {isMe && (
+                                                                msg.readAt
+                                                                    ? <CheckCheck className="w-3 h-3 text-teal-400" />
+                                                                    : <Check className="w-3 h-3 text-gray-200" />
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 ))
                             ) : (
