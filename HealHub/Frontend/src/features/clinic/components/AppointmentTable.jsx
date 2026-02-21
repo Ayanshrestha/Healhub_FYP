@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { Clock, CheckCircle, XCircle, Calendar, Eye, Download, MessageSquare } from "lucide-react";
 import ClinicalMessaging from "./ClinicalMessaging";
 
-const AppointmentTable = ({ appointments = [] }) => {
-    const [selectedPatient, setSelectedPatient] = useState(null);
+const AppointmentTable = ({ appointments = [], onStatusUpdate }) => {
+    const [selectedAppointment, setSelectedAppointment] = useState(null);
     const getStatusStyle = (status) => {
         switch (status) {
-            case "Confirmed": return "bg-teal-100 text-teal-700";
+            case "Confirmed": case "Approved": return "bg-teal-100 text-teal-700";
             case "Pending": return "bg-amber-100 text-amber-700";
             case "Completed": return "bg-gray-100 text-gray-700";
             case "Cancelled": return "bg-red-100 text-red-700";
@@ -71,12 +71,42 @@ const AppointmentTable = ({ appointments = [] }) => {
                                         </span>
                                     </td>
                                     <td className="py-4 px-6 text-right">
-                                        <button
-                                            onClick={() => setSelectedPatient(appt.patientName)}
-                                            className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
-                                        >
-                                            <MessageSquare className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex items-center justify-end space-x-2">
+                                            {appt.status === "Pending" && (
+                                                <>
+                                                    <button
+                                                        onClick={() => onStatusUpdate(appt._id, "Confirmed")}
+                                                        className="p-2 text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
+                                                        title="Confirm Appointment"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => onStatusUpdate(appt._id, "Cancelled")}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                                        title="Cancel Appointment"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            )}
+                                            {appt.status === "Confirmed" && (
+                                                <button
+                                                    onClick={() => onStatusUpdate(appt._id, "Completed")}
+                                                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
+                                                    title="Mark as Completed"
+                                                >
+                                                    <CheckCircle className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => setSelectedAppointment(appt)}
+                                                className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
+                                                title="Open Consultation Chat"
+                                            >
+                                                <MessageSquare className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))
@@ -85,10 +115,11 @@ const AppointmentTable = ({ appointments = [] }) => {
                 </table>
             </div>
 
-            {selectedPatient && (
+            {selectedAppointment && (
                 <ClinicalMessaging
-                    patientName={selectedPatient}
-                    onClose={() => setSelectedPatient(null)}
+                    appointmentId={selectedAppointment._id || selectedAppointment.id}
+                    patientName={selectedAppointment.patientName}
+                    onClose={() => setSelectedAppointment(null)}
                 />
             )}
         </div>

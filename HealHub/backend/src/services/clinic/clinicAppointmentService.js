@@ -5,12 +5,23 @@ import Patient from "../../models/patient.js";
 export const getClinicAppointments = async (clinicId, filters = {}) => {
     let query = { clinicId };
     if (filters.status) query.status = filters.status;
-    if (filters.doctorId) query.doctorId = filters.doctorId;
+    if (filters.doctorId) query.providerId = filters.doctorId;
 
-    return await Appointment.find(query)
-        .populate("patientId", "fullName email phone gender dob")
-        .populate("doctorId", "fullName specialization")
+    const appointments = await Appointment.find(query)
+        .populate("patientId", "fullName email phone gender dob age")
+        .populate({ path: "providerId", select: "fullName specialization" })
         .sort({ appointmentDate: 1 });
+
+    // Map to flatter structure for frontend
+    return appointments.map(appt => ({
+        _id: appt._id,
+        patientName: appt.patientId?.fullName || "Unknown Patient",
+        patientAge: appt.patientId?.age || "N/A",
+        doctorName: appt.providerId?.fullName || "Not Assigned",
+        specialization: appt.providerId?.specialization || "N/A",
+        dateTime: `${new Date(appt.appointmentDate).toLocaleDateString()} ${appt.timeSlot}`,
+        status: appt.status,
+    }));
 };
 
 export const updateAppointmentStatus = async (appointmentId, status, clinicId) => {
@@ -18,7 +29,7 @@ export const updateAppointmentStatus = async (appointmentId, status, clinicId) =
         { _id: appointmentId, clinicId },
         { status },
         { new: true }
-    ).populate("patientId").populate("doctorId");
+    ).populate("patientId").populate("providerId");
 
     if (appointment) {
         // Find patient user to send notification
