@@ -99,13 +99,18 @@ const AppointmentTable = ({ appointments = [], onStatusUpdate }) => {
                                                     <CheckCircle className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => setSelectedAppointment(appt)}
-                                                className="p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
-                                                title="Open Consultation Chat"
-                                            >
-                                                <MessageSquare className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex items-center space-x-1">
+                                                <button
+                                                    onClick={() => setSelectedAppointment(appt)}
+                                                    className="relative p-2 text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-xl transition-all"
+                                                    title="Open Consultation Chat"
+                                                >
+                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    {appt.unreadCount > 0 && (
+                                                        <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                                                    )}
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
