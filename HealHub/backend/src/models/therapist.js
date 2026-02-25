@@ -77,7 +77,10 @@ const therapistSchema = new mongoose.Schema(
       },
       default: {},
     },
-
+    blockedDates: {
+      type: [Date],
+      default: [],
+    },
     workAddress: {
       type: String,
     },

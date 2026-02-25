@@ -29,6 +29,7 @@ router.get("/appointments", appointmentController.getAppointments);
 router.get("/appointments/:appointmentId", appointmentController.getAppointmentDetails);
 router.patch("/appointments/:appointmentId/status", appointmentController.updateAppointmentStatus);
 router.patch("/appointments/:appointmentId/reschedule", appointmentController.rescheduleAppointment);
+router.post("/appointments/:appointmentId/attachments", upload.array("files", 5), appointmentController.uploadClinicalAttachments);
 
 // Messaging
 router.get("/messages/:appointmentId", messagingController.getHistory);

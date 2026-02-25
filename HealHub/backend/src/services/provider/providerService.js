@@ -34,7 +34,8 @@ export const updateProviderProfile = async (userId, role, updateData) => {
     // Whitelist editable fields
     const {
         specialization, qualification, consultationFee,
-        bio, profilePhoto, availability, homeVisitEnabled, address
+        bio, profilePhoto, availability, homeVisitEnabled, address,
+        blockedDates
     } = updateData;
 
     const cleanData = {};
@@ -46,6 +47,7 @@ export const updateProviderProfile = async (userId, role, updateData) => {
     if (availability) cleanData.availability = availability;
     if (homeVisitEnabled !== undefined) cleanData.homeVisitEnabled = homeVisitEnabled;
     if (address) cleanData.address = address;
+    if (blockedDates) cleanData.blockedDates = blockedDates;
 
     if (role === "doctor") {
         return await Doctor.findOneAndUpdate({ userId }, cleanData, { new: true });

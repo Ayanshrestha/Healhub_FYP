@@ -13,7 +13,10 @@ import {
     Loader2,
     CheckCircle,
     AlertCircle,
-    Camera
+    Camera,
+    CalendarDays,
+    Plus,
+    X
 } from "lucide-react";
 import * as providerService from "../services/providerService";
 
@@ -35,6 +38,28 @@ const ProviderProfile = () => {
                     [field]: value
                 }
             }
+        }));
+    };
+
+    const handleBlockedDateAdd = (date) => {
+        if (!date) return;
+        const currentDates = formData.blockedDates || [];
+        if (currentDates.some(d => new Date(d).toDateString() === new Date(date).toDateString())) {
+            setMessage({ type: 'error', text: 'Date already blocked' });
+            return;
+        }
+        setFormData(prev => ({
+            ...prev,
+            blockedDates: [...currentDates, date]
+        }));
+    };
+
+    const handleBlockedDateRemove = (index) => {
+        const currentDates = [...(formData.blockedDates || [])];
+        currentDates.splice(index, 1);
+        setFormData(prev => ({
+            ...prev,
+            blockedDates: currentDates
         }));
     };
 
@@ -403,11 +428,58 @@ const ProviderProfile = () => {
                             </div>
                         )}
 
-                        <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center space-x-3 text-slate-400">
-                                <FileText className="w-5 h-5" />
-                                <span className="text-xs font-bold font-primary italic">Schedule changes will sync automatically with clinic booking boards.</span>
-                            </div>
+                    </div>
+                </div>
+
+                <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden relative group">
+                    <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center space-x-2">
+                        <CalendarDays className="w-5 h-5 text-rose-500" />
+                        <span>Blocked Specific Dates</span>
+                    </h3>
+
+                    <div className="space-y-6">
+                        <p className="text-sm font-bold text-gray-400 italic">
+                            Block specific days for leave, holidays, or emergencies. These will override your weekly schedule.
+                        </p>
+
+                        <div className="flex gap-4">
+                            <input
+                                type="date"
+                                id="new-blocked-date"
+                                className="flex-1 bg-slate-50 border border-slate-100 p-4 rounded-2xl font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const input = document.getElementById('new-blocked-date');
+                                    handleBlockedDateAdd(input.value);
+                                    input.value = '';
+                                }}
+                                className="bg-rose-50 text-rose-600 p-4 rounded-2xl font-black hover:bg-rose-600 hover:text-white transition-all border border-rose-100"
+                            >
+                                <Plus className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                            {formData.blockedDates?.length > 0 ? formData.blockedDates.map((date, idx) => (
+                                <div key={idx} className="flex items-center space-x-2 bg-rose-50 text-rose-700 px-4 py-2 rounded-xl border border-rose-100 group/date transition-all hover:pr-2">
+                                    <span className="font-black text-xs uppercase tracking-widest">
+                                        {new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBlockedDateRemove(idx)}
+                                        className="p-1 hover:bg-rose-200 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )) : (
+                                <div className="w-full py-8 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                                    <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">No dates blocked yet</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

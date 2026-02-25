@@ -203,7 +203,7 @@ export const verifyPayment = async (pidx) => {
             const appointment = await Appointment.findById(payment.appointmentId);
             if (!appointment) throw new Error("Appointment not found");
 
-            appointment.status = "Approved";
+            // appointment.status = "Approved"; // Option B: Manual Approval required even after payment
             appointment.paymentStatus = "Paid";
             await appointment.save();
 
@@ -278,7 +278,7 @@ export const verifyPayment = async (pidx) => {
                     recipientId: PatientUser.userId._id,
                     type: "APPOINTMENT",
                     title: "Payment Successful 💰",
-                    message: `Your payment was verified. Appointment with Dr. ${doctor?.fullName || 'the specialist'} is now Approved.`,
+                    message: `Your payment was verified. Your appointment with Dr. ${doctor?.fullName || 'the specialist'} is now awaiting doctor's final approval.`,
                     data: { appointmentId: appointment._id }
                 });
             }

@@ -35,7 +35,7 @@ const appointmentSchema = new mongoose.Schema(
             // Pending: Created but waiting for something (or just created)
             // Approved: Confirmed by system/doctor
             // Cancelled: Slot is freed up
-            enum: ["Pending", "Approved", "Confirmed", "Rescheduled", "Completed", "Cancelled"],
+            enum: ["Pending", "Approved", "Confirmed", "Rescheduled", "Completed", "Cancelled", "Rejected", "No-Show"],
             default: "Pending",
         },
         appointmentType: {
@@ -70,6 +70,20 @@ const appointmentSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        attachments: [
+            {
+                name: String,
+                url: String,
+                fileType: {
+                    type: String,
+                    enum: ["PRESCRIPTION", "REPORT", "OTHER"],
+                },
+                uploadedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
     },
     { timestamps: true }
 );

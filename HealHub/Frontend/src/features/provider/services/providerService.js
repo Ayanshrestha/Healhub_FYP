@@ -100,6 +100,19 @@ export const rescheduleAppointment = async (appointmentId, data) => {
     return response.data;
 };
 
+export const uploadClinicalAttachments = async (appointmentId, files, fileType) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append("files", file));
+    formData.append("fileType", fileType);
+
+    const response = await api.post(`/provider/appointments/${appointmentId}/attachments`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    });
+    return response.data;
+};
+
 /**
  * Clinical Messaging
  */
@@ -110,6 +123,11 @@ export const getMessageHistory = async (appointmentId) => {
 
 export const sendMessage = async (messageData) => {
     const response = await api.post("/provider/messages", messageData);
+    return response.data;
+};
+
+export const markMessagesRead = async (appointmentId) => {
+    const response = await api.patch(`/provider/messages/${appointmentId}/read`);
     return response.data;
 };
 

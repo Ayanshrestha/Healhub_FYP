@@ -16,7 +16,8 @@ import {
     Home,
     Video,
     MapPin,
-    Eye
+    Eye,
+    UserMinus
 } from "lucide-react";
 import * as providerService from "../services/providerService";
 
@@ -27,21 +28,31 @@ const ProviderAppointments = () => {
     const [filter, setFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [message, setMessage] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({ totalPages: 1, totalResults: 0, limit: 10 });
 
     useEffect(() => {
         fetchAppointments();
-    }, [filter]);
+    }, [filter, currentPage, searchTerm]);
 
     const fetchAppointments = async () => {
         try {
             setLoading(true);
-            const statusFilter = filter === "all" ? {} : { status: filter };
-            const res = await providerService.getAppointments(statusFilter);
+            const params = {
+                page: currentPage,
+                limit: 10,
+                status: filter === "all" ? undefined : filter,
+                search: searchTerm || undefined
+            };
+            const res = await providerService.getAppointments(params);
             // Safe check for res and appointments array
             if (res && Array.isArray(res.appointments)) {
                 // Filter out any null/undefined items immediately
                 const validAppointments = res.appointments.filter(item => item && typeof item === 'object');
                 setAppointments(validAppointments);
+                if (res.pagination) {
+                    setPagination(res.pagination);
+                }
             } else {
                 console.warn("Invalid appointments data received:", res);
                 setAppointments([]);
@@ -71,12 +82,8 @@ const ProviderAppointments = () => {
         navigate(`/provider/appointments/${appointmentId}`);
     };
 
-    const filteredAppointments = Array.isArray(appointments) ? appointments.filter(appt =>
-        appt && (
-            (appt.patientId?.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (appt.patientId?._id || "").toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    ) : [];
+    // Use all fetched appointments (filtering is now server-side)
+    const displayedAppointments = appointments;
 
     const getStatusStyles = (status) => {
         switch (status) {
@@ -84,6 +91,8 @@ const ProviderAppointments = () => {
             case 'Approved': return 'bg-blue-100 text-blue-600 border-blue-200';
             case 'Completed': return 'bg-emerald-100 text-emerald-600 border-emerald-200';
             case 'Cancelled': return 'bg-red-100 text-red-600 border-red-200';
+            case 'Rejected': return 'bg-rose-100 text-rose-600 border-rose-200';
+            case 'No-Show': return 'bg-gray-100 text-gray-600 border-gray-200';
             case 'Rescheduled': return 'bg-purple-100 text-purple-600 border-purple-200';
             default: return 'bg-gray-100 text-gray-600 border-gray-200';
         }
@@ -118,14 +127,17 @@ const ProviderAppointments = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:flex-none">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <div className="relative group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Search patient or ID..."
+                            placeholder="Search patient name..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full md:w-64 bg-white border-2 border-gray-100 pl-11 pr-4 py-2.5 rounded-2xl font-bold text-sm focus:ring-2 focus:ring-teal-500 transition-all outline-none"
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setCurrentPage(1); // Reset to page 1 on search
+                            }}
+                            className="pl-12 pr-6 py-2.5 bg-white border-2 border-gray-50 rounded-2xl text-xs font-bold text-gray-900 focus:outline-none focus:border-teal-500/30 focus:ring-4 focus:ring-teal-500/5 transition-all w-64 uppercase tracking-wider"
                         />
                     </div>
                 </div>
@@ -142,10 +154,13 @@ const ProviderAppointments = () => {
 
             {/* Filters / Tabs */}
             <div className="flex flex-wrap items-center gap-2">
-                {['all', 'Pending', 'Approved', 'Completed', 'Cancelled'].map((t) => (
+                {['all', 'Pending', 'Approved', 'Completed', 'Cancelled', 'Rejected', 'No-Show'].map((t) => (
                     <button
                         key={t}
-                        onClick={() => setFilter(t)}
+                        onClick={() => {
+                            setFilter(t);
+                            setCurrentPage(1);
+                        }}
                         className={`px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer ${filter === t
                             ? 'bg-gray-900 text-white shadow-lg shadow-gray-200'
                             : 'bg-white border-2 border-gray-50 text-gray-400 hover:border-teal-100 hover:text-teal-600'
@@ -169,9 +184,12 @@ const ProviderAppointments = () => {
                                 <th className="px-8 py-5">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredAppointments.length > 0 ? filteredAppointments.map((appt) => (
-                                <tr key={appt?._id || Math.random()} className="hover:bg-teal-50/30 transition-colors group">
+                        <tbody>
+                            {displayedAppointments.length > 0 ? displayedAppointments.map((appt) => (
+                                <tr
+                                    key={appt?._id}
+                                    className="border-b border-gray-50/50 hover:bg-slate-50/50 transition-colors group"
+                                >
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 rounded-[1.2rem] bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-sm font-black shadow-lg shadow-teal-50">
@@ -211,9 +229,16 @@ const ProviderAppointments = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusStyles(appt?.status)}`}>
-                                            {appt?.status}
-                                        </span>
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest text-center ${getStatusStyles(appt?.status)}`}>
+                                                {appt?.status}
+                                            </span>
+                                            {appt?.paymentStatus === 'Paid' && (
+                                                <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-tighter text-center shadow-sm">
+                                                    PAID
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex items-center gap-2">
@@ -221,10 +246,9 @@ const ProviderAppointments = () => {
                                                 <>
                                                     <button
                                                         onClick={() => handleStatusUpdate(appt?._id, 'Approved')}
-                                                        className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-sm border border-emerald-100"
-                                                        title="Approve Appointment"
+                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
                                                     >
-                                                        <CheckCircle className="w-4 h-4" />
+                                                        Approve Appointment
                                                     </button>
                                                     <button
                                                         onClick={() => handleViewDetails(appt?._id)}
@@ -234,7 +258,7 @@ const ProviderAppointments = () => {
                                                         <Eye className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleStatusUpdate(appt?._id, 'Cancelled')}
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'Rejected')}
                                                         className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-sm border border-red-100"
                                                         title="Reject Appointment"
                                                     >
@@ -243,12 +267,28 @@ const ProviderAppointments = () => {
                                                 </>
                                             )}
                                             {appt?.status === 'Approved' && (
-                                                <button
-                                                    onClick={() => handleStatusUpdate(appt?._id, 'Completed')}
-                                                    className="px-4 py-2 bg-gray-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200"
-                                                >
-                                                    Mark Completed
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'Completed')}
+                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                                                    >
+                                                        Mark Completed
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'No-Show')}
+                                                        className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-900 hover:text-white transition-all cursor-pointer shadow-sm border border-gray-200"
+                                                        title="Mark No-Show"
+                                                    >
+                                                        <UserMinus className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleStatusUpdate(appt?._id, 'Cancelled')}
+                                                        className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all cursor-pointer shadow-sm border border-red-100"
+                                                        title="Cancel Appointment"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                </>
                                             )}
                                             <button
                                                 onClick={() => handleViewDetails(appt?._id)}
@@ -279,17 +319,46 @@ const ProviderAppointments = () => {
                     </table>
                 </div>
 
-                {/* Pagination Placeholder */}
+                {/* Pagination Controls */}
                 <div className="mt-auto p-8 border-t border-gray-50 flex items-center justify-between">
-                    <p className="text-xs font-bold text-gray-400 italic font-primary tracking-wide">Showing {filteredAppointments.length} record(s) on this view</p>
+                    <p className="text-xs font-bold text-gray-400 italic font-primary tracking-wide">
+                        Showing {appointments.length} of {pagination.totalResults} record(s)
+                    </p>
                     <div className="flex items-center space-x-2">
-                        <button className="p-2.5 border-2 border-gray-50 rounded-xl text-gray-300 hover:border-teal-100 hover:text-teal-600 transition-all">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className={`p-2.5 border-2 rounded-xl transition-all ${currentPage === 1
+                                ? 'border-gray-50 text-gray-200 cursor-not-allowed'
+                                : 'border-gray-50 text-gray-500 hover:border-teal-100 hover:text-teal-600 cursor-pointer'
+                                }`}
+                        >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <button className="p-2.5 border-2 border-gray-900 bg-gray-900 rounded-xl text-white shadow-lg shadow-gray-200">
-                            <span className="text-xs font-black px-1">1</span>
-                        </button>
-                        <button className="p-2.5 border-2 border-gray-50 rounded-xl text-gray-300 hover:border-teal-100 hover:text-teal-600 transition-all">
+
+                        <div className="flex items-center gap-1">
+                            {[...Array(pagination.totalPages)].map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`w-10 h-10 border-2 rounded-xl text-xs font-black transition-all cursor-pointer ${currentPage === i + 1
+                                        ? 'border-gray-900 bg-gray-900 text-white shadow-lg shadow-gray-200'
+                                        : 'border-gray-50 text-gray-400 hover:border-teal-100 hover:text-teal-600'
+                                        }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                            disabled={currentPage === pagination.totalPages}
+                            className={`p-2.5 border-2 rounded-xl transition-all ${currentPage === pagination.totalPages
+                                ? 'border-gray-50 text-gray-200 cursor-not-allowed'
+                                : 'border-gray-50 text-gray-500 hover:border-teal-100 hover:text-teal-600 cursor-pointer'
+                                }`}
+                        >
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>

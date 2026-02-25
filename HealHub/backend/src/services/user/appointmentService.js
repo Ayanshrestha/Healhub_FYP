@@ -36,6 +36,18 @@ export const getDoctorAvailability = async (doctorId, dateString) => {
         return [];
     }
 
+    // 0. Check for Blocked Dates
+    const isBlocked = doctor.blockedDates?.some(blockedDate => {
+        const bd = new Date(blockedDate);
+        return bd.getUTCFullYear() === date.getUTCFullYear() &&
+            bd.getUTCMonth() === date.getUTCMonth() &&
+            bd.getUTCDate() === date.getUTCDate();
+    });
+
+    if (isBlocked) {
+        return [];
+    }
+
     // --- AVAILABILITY ALGORITHM ---
     // 1. Calculate Start & End of the requested date
     const startOfDay = new Date(dateString);
@@ -48,7 +60,7 @@ export const getDoctorAvailability = async (doctorId, dateString) => {
     const bookedSlots = await Appointment.find({
         providerId: doctorId,
         appointmentDate: { $gte: startOfDay, $lte: endOfDay },
-        status: { $ne: "Cancelled" }
+        status: { $nin: ["Cancelled", "Rejected"] }
     }).select("timeSlot").lean();
 
     const bookedTimeSlots = bookedSlots.map(b => b.timeSlot);
@@ -118,7 +130,7 @@ export const createAppointment = async (userId, bookingData) => {
         providerId: doctorId,
         appointmentDate: { $gte: startOfDay, $lte: endOfDay },
         timeSlot,
-        status: { $ne: "Cancelled" } // Ignore cancelled ones
+        status: { $nin: ["Cancelled", "Rejected"] } // Ignore cancelled and rejected ones
     });
 
     if (existingBooking) {
@@ -254,7 +266,7 @@ export const cancelAppointment = async (userId, appointmentId) => {
         throw error;
     }
 
-    if (!["Pending", "Approved"].includes(appointment.status)) {
+    if (!["Pending", "Approved", "Rescheduled"].includes(appointment.status)) {
         throw new Error(`Cannot cancel appointment with status: ${appointment.status}`);
     }
 

@@ -78,7 +78,10 @@ const doctorSchema = new mongoose.Schema(
       },
       default: {},
     },
-
+    blockedDates: {
+      type: [Date],
+      default: [],
+    },
     affiliation: {
       type: String,
     },
