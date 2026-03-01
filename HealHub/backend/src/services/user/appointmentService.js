@@ -4,6 +4,8 @@ import Affiliation from "../../models/affiliation.js";
 import * as otpService from "../auth/otpService.js";
 import { initiatePayment, initiateAppointmentPayment } from "../payment/paymentService.js";
 import { createNotification } from "../common/notificationService.js";
+import { sendEmail, getAppointmentRequestTemplate } from "../common/emailService.js";
+import Clinic from "../../models/clinic.js";
 
 /**
  * Get available slots for a doctor on a specific date
@@ -154,26 +156,89 @@ export const createAppointment = async (userId, bookingData) => {
         status: "Pending",
         appointmentType: visitType || "CLINIC_VISIT",
         reason,
-        paymentStatus: "Pending" // Initial status
+        paymentStatus: "Pending", // Initial status
+        paymentOption: paymentOption || "Clinic"
     });
 
-    // Notify Clinic/Provider if needed (future), but let's notify the patient for confirmation
+    // Notify patient for confirmation
     await createNotification({
         recipientId: userId,
         type: "APPOINTMENT",
-        title: "Appointment Booked",
-        message: `Your appointment with Dr. ${doctor.fullName} on ${appointmentDate} at ${timeSlot} has been booked.`,
+        title: "Appointment Requested 📨",
+        message: `Your appointment request for Dr. ${doctor.fullName} has been received and is awaiting approval.`,
         data: { appointmentId: appointment._id }
     });
 
-    let paymentData = null;
-    if (paymentOption === "Online") {
-        // If Online Payment is selected, communicate with Payment Gateway (Khalti)
-        // This returns a payment URL for the frontend to redirect the user to.
-        paymentData = await initiateAppointmentPayment(appointment._id);
+    // --- NEW: SEND REQUEST RECEIVED EMAIL ---
+    if (patient && patient.email) {
+        try {
+            const clinic = await Clinic.findById(clinicId);
+            const dateStr = new Date(appointmentDate).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const emailHtml = getAppointmentRequestTemplate({
+                patientName: patient.fullName,
+                doctorName: doctor.fullName,
+                clinicName: clinic ? clinic.clinicName : "HealHub Clinic",
+                date: dateStr,
+                timeSlot: timeSlot
+            });
+
+            await sendEmail({
+                to: patient.email,
+                subject: `Appointment Request Received: Dr. ${doctor.fullName} 📨`,
+                html: emailHtml
+            });
+            console.log(`📧 Request email sent to ${patient.email}`);
+        } catch (emailErr) {
+            console.error("❌ Failed to send request received email:", emailErr);
+        }
     }
 
-    return { appointment, paymentData };
+    // In Model B (Pay After Approval), we DO NOT initiate payment here.
+    // The patient only pays once the doctor approves the request.
+    return { appointment, paymentData: null };
+};
+
+/**
+ * Re-initiate payment for an Approved appointment
+ */
+export const reinitiateAppointmentPayment = async (userId, appointmentId) => {
+    const Patient = (await import("../../models/patient.js")).default;
+    const patient = await Patient.findOne({ userId });
+    if (!patient) throw new Error("Patient profile not found");
+
+    const appointment = await Appointment.findOne({
+        _id: appointmentId,
+        patientId: patient._id
+    });
+
+    if (!appointment) {
+        const error = new Error("Appointment not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (appointment.status !== "Approved") {
+        throw new Error("Only approved appointments can be paid for.");
+    }
+
+    if (appointment.paymentStatus === "Paid") {
+        throw new Error("This appointment is already paid for.");
+    }
+
+    // Ensure paymentOption is updated to "Online" when re-initiating digital payment
+    appointment.paymentOption = "Online";
+    await appointment.save();
+
+    const { initiateAppointmentPayment } = await import("../payment/paymentService.js");
+    const paymentData = await initiateAppointmentPayment(appointment._id);
+
+    return paymentData;
 };
 
 /**
@@ -270,7 +335,16 @@ export const cancelAppointment = async (userId, appointmentId) => {
         throw new Error(`Cannot cancel appointment with status: ${appointment.status}`);
     }
 
+    const wasPaid = appointment.paymentStatus === "Paid";
     appointment.status = "Cancelled";
+
+    if (wasPaid) {
+        // In a production environment, you would call the Khalti Refund API here.
+        // For now, we update the payment status to "Refunded" to acknowledge the need.
+        appointment.paymentStatus = "Refunded";
+        console.log(`💰 Appointment ${appointment._id} was paid. Refunding... (Placeholder logic)`);
+    }
+
     await appointment.save();
 
     // Notify patient
@@ -278,7 +352,50 @@ export const cancelAppointment = async (userId, appointmentId) => {
         recipientId: userId,
         type: "APPOINTMENT",
         title: "Appointment Cancelled",
-        message: `Your appointment with Dr. ${appointment.providerId?.fullName || 'the specialist'} has been cancelled.`,
+        message: `Your appointment with Dr. ${appointment.providerId?.fullName || 'the specialist'} has been cancelled.${wasPaid ? " A refund has been initiated." : ""}`,
+        data: { appointmentId: appointment._id }
+    });
+
+    return appointment;
+};
+
+/**
+ * Switch payment option to Clinic for an approved appointment
+ */
+export const switchToClinicPayment = async (userId, appointmentId) => {
+    const Patient = (await import("../../models/patient.js")).default;
+    const patient = await Patient.findOne({ userId });
+    if (!patient) throw new Error("Patient profile not found");
+
+    const appointment = await Appointment.findOne({
+        _id: appointmentId,
+        patientId: patient._id
+    }).populate("providerId", "fullName");
+
+    if (!appointment) {
+        const error = new Error("Appointment not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    if (appointment.status !== "Approved") {
+        throw new Error("Only approved appointments can be updated.");
+    }
+
+    if (appointment.paymentStatus === "Paid") {
+        throw new Error("This appointment is already paid for.");
+    }
+
+    appointment.paymentOption = "Clinic";
+    await appointment.save();
+
+    // Create notification for the patient acknowledging the switch
+    const { createNotification } = await import("../common/notificationService.js");
+    await createNotification({
+        recipientId: userId,
+        type: "APPOINTMENT",
+        title: "Payment Method Updated",
+        message: `Your payment method for appointment with Dr. ${appointment.providerId?.fullName} has been switched to 'Pay at Clinic'.`,
         data: { appointmentId: appointment._id }
     });
 

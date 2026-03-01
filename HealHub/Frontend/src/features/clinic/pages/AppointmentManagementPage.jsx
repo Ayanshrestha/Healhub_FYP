@@ -22,6 +22,17 @@ const AppointmentManagementPage = () => {
 
     useEffect(() => {
         fetchAppointments();
+
+        const handleRead = (e) => {
+            const { appointmentId } = e.detail;
+            console.log(`🧹 Clearing unread badge for appointment: ${appointmentId}`);
+            setAppointments(prev => prev.map(appt =>
+                appt._id === appointmentId ? { ...appt, unreadCount: 0 } : appt
+            ));
+        };
+
+        window.addEventListener('clinical_messages_read', handleRead);
+        return () => window.removeEventListener('clinical_messages_read', handleRead);
     }, []);
 
     const handleStatusUpdate = async (appointmentId, status) => {

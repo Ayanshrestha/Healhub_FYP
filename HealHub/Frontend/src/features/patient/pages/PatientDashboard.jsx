@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
     Calendar,
     Bell,
@@ -12,11 +13,13 @@ import {
     Stethoscope,
     Activity,
     AlertCircle,
-    Pill
+    Pill,
+    MessageCircle
 } from "lucide-react";
 import patientService from "../services/patientService";
 
 const PatientDashboard = () => {
+    const navigate = useNavigate();
     const [viewDate, setViewDate] = useState(new Date());
     const [stats, setStats] = useState({
         upcomingAppointments: 0,
@@ -25,24 +28,40 @@ const PatientDashboard = () => {
         homeVisits: 0
     });
     const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+    const [appointments, setAppointments] = useState([]);
     const [reminders, setReminders] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [appointments, rems, reports] = await Promise.all([
+                const [upcoming, rems, reports, past] = await Promise.all([
                     patientService.getUpcomingAppointments(),
                     patientService.getReminders(),
-                    patientService.getReports()
+                    patientService.getReports(),
+                    patientService.getPastAppointments()
                 ]);
 
-                const appointmentsList = Array.isArray(appointments) ? appointments : [];
+                const appointmentsList = Array.isArray(upcoming) ? upcoming : [];
+                const pastList = Array.isArray(past) ? past : [];
                 const remindersList = Array.isArray(rems) ? rems : [];
                 const reportsList = Array.isArray(reports) ? reports : [];
 
                 setUpcomingAppointments(appointmentsList);
                 setReminders(remindersList.slice(0, 3));
+
+                // Track unique consultations for "Messages" count
+                const all = [...appointmentsList, ...pastList];
+                const uniqueConversations = [];
+                const seenPairs = new Set();
+                all.forEach(app => {
+                    const key = `${app.doctorId?._id}-${app.clinicId?._id}`;
+                    if (app.doctorId && app.clinicId && !seenPairs.has(key)) {
+                        seenPairs.add(key);
+                        uniqueConversations.push(app);
+                    }
+                });
+                setAppointments(uniqueConversations);
 
                 setStats({
                     upcomingAppointments: appointmentsList.length,
@@ -87,12 +106,16 @@ const PatientDashboard = () => {
             {/* Overview Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: "Upcoming visits", value: stats.upcomingAppointments, icon: Calendar, color: "teal", detail: (stats.upcomingAppointments > 0 && upcomingAppointments[0]?.appointmentDate) ? `Next: ${new Date(upcomingAppointments[0].appointmentDate).toLocaleDateString()}` : "No visits scheduled" },
-                    { label: "Medication active", value: stats.activeReminders, icon: Bell, color: "emerald", detail: `${stats.activeReminders} items in schedule` },
-                    { label: "Diagnostic scans", value: stats.recentScans, icon: Activity, color: "sky", detail: "Electronic health records" },
-                    { label: "Home assistance", value: stats.homeVisits, icon: Home, color: "indigo", detail: "Care provider available" },
+                    { label: "Upcoming visits", value: stats.upcomingAppointments, icon: Calendar, color: "teal", detail: (stats.upcomingAppointments > 0 && upcomingAppointments[0]?.appointmentDate) ? `Next: ${new Date(upcomingAppointments[0].appointmentDate).toLocaleDateString()}` : "No visits scheduled", path: "/patient/appointments" },
+                    { label: "Secure Messages", value: appointments.length, icon: MessageCircle, color: "sky", detail: "Clinical consulting", path: "/patient/messages" },
+                    { label: "Medication active", value: stats.activeReminders, icon: Bell, color: "emerald", detail: `${stats.activeReminders} items in schedule`, path: "/patient/medicines" },
+                    { label: "Diagnostic scans", value: stats.recentScans, icon: Activity, color: "indigo", detail: "Electronic records", path: "/patient/reports" },
                 ].map((stat, i) => (
-                    <div key={i} className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 card-hover relative overflow-hidden">
+                    <div
+                        key={i}
+                        onClick={() => stat.path && navigate(stat.path)}
+                        className={`group bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 card-hover relative overflow-hidden ${stat.path ? 'cursor-pointer' : ''}`}
+                    >
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-${stat.color}-500/5 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500`}></div>
                         <div className="flex items-start justify-between relative z-10">
                             <div className={`w-14 h-14 bg-${stat.color}-50 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-transform`}>
@@ -193,9 +216,16 @@ const PatientDashboard = () => {
                                             <img src={app.doctorId?.profilePhoto || "https://ui-avatars.com/api/?name=Doctor&background=0D9488&color=fff"} className="w-full h-full object-cover" alt="Doctor" />
                                         </div>
                                         <div className="flex-1">
-                                            <div className="flex items-center space-x-2">
-                                                <h4 className="font-bold text-slate-800">{app.doctorId?.fullName || "General Practitioner"}</h4>
-                                                <span className="px-2 py-0.5 bg-white border border-slate-100 rounded-lg text-[10px] font-black text-slate-400 uppercase">{app.providerType}</span>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h4 className="font-bold text-slate-800 italic uppercase leading-none">{app.doctorId?.fullName || "General Practitioner"}</h4>
+                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${app.status === 'Approved' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-amber-50 text-amber-600'}`}>
+                                                    {app.status}
+                                                </span>
+                                                {app.status === 'Approved' && (
+                                                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${app.paymentStatus === 'Paid' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-rose-500 text-white shadow-sm'}`}>
+                                                        {app.paymentStatus === 'Paid' ? 'PAID' : 'UNPAID'}
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-slate-500 text-sm font-medium">{app.clinicId?.clinicName}</p>
                                             <div className="flex items-center space-x-4 mt-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -209,7 +239,10 @@ const PatientDashboard = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        <button className="hidden group-hover:flex items-center justify-center w-10 h-10 bg-white shadow-sm border border-slate-100 rounded-full text-teal-600 transition-all hover:bg-teal-600 hover:text-white">
+                                        <button
+                                            onClick={() => navigate(`/patient/appointments/${app._id}`)}
+                                            className="hidden group-hover:flex items-center justify-center w-10 h-10 bg-white shadow-sm border border-slate-100 rounded-full text-teal-600 transition-all hover:bg-teal-600 hover:text-white"
+                                        >
                                             <ChevronRight className="w-5 h-5" />
                                         </button>
                                     </div>

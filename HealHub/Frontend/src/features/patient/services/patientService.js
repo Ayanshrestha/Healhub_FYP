@@ -80,22 +80,28 @@ const patientService = {
     },
 
     // Messaging
-    getMessages: async (appointmentId) => {
-        const response = await api.get(`/user/patient/messages/${appointmentId}`);
-        return response.data?.data;
-    },
-
-    sendMessage: async (appointmentId, content, type = "TEXT", attachments = []) => {
-        const response = await api.post(`/user/patient/messages/${appointmentId}`, {
-            content,
-            type,
-            attachments
+    getMessages: async (appointmentId, context = "DIRECT") => {
+        const response = await api.get(`/user/patient/messages/${appointmentId}`, {
+            params: { context }
         });
         return response.data?.data;
     },
 
-    markMessagesRead: async (appointmentId) => {
-        const response = await api.patch(`/user/patient/messages/${appointmentId}/read`);
+    sendMessage: async (appointmentId, content, type = "TEXT", attachments = [], context = "DIRECT", tempId = null) => {
+        const response = await api.post(`/user/patient/messages/${appointmentId}`, {
+            content,
+            type,
+            attachments,
+            context,
+            tempId
+        });
+        return response.data?.data;
+    },
+
+    markMessagesRead: async (appointmentId, context = "DIRECT") => {
+        const response = await api.patch(`/user/patient/messages/${appointmentId}/read`, {}, {
+            params: { context }
+        });
         return response.data;
     },
 
@@ -172,6 +178,16 @@ const patientService = {
 
     changePassword: async (passwordData) => {
         const response = await api.post("/user/patient/profile/change-password", passwordData);
+        return response.data;
+    },
+
+    reinitiatePayment: async (appointmentId) => {
+        const response = await api.post(`/user/patient/appointments/${appointmentId}/reinitiate-payment`);
+        return response.data;
+    },
+
+    switchToClinic: async (appointmentId) => {
+        const response = await api.patch(`/user/patient/appointments/${appointmentId}/switch-to-clinic`);
         return response.data;
     }
 };

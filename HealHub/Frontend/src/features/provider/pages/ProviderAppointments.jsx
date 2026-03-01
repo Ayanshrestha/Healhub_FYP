@@ -230,12 +230,12 @@ const ProviderAppointments = () => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex flex-col gap-1.5">
-                                            <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest text-center ${getStatusStyles(appt?.status)}`}>
+                                            <span className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest text-center ${appt?.status === 'Approved' ? 'bg-blue-50 text-blue-600 border-blue-100' : getStatusStyles(appt?.status)}`}>
                                                 {appt?.status}
                                             </span>
-                                            {appt?.paymentStatus === 'Paid' && (
-                                                <span className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase tracking-tighter text-center shadow-sm">
-                                                    PAID
+                                            {(appt?.status === 'Approved' || appt?.status === 'Completed') && (
+                                                <span className={`px-3 py-1 text-white rounded-lg text-[8px] font-black uppercase tracking-tighter text-center shadow-sm ${appt?.paymentStatus === 'Paid' ? 'bg-emerald-500 shadow-emerald-200' : 'bg-rose-500 shadow-rose-200'}`}>
+                                                    {appt?.paymentStatus === 'Paid' ? 'PAID' : 'UNPAID'}
                                                 </span>
                                             )}
                                         </div>

@@ -39,6 +39,7 @@ const BookingFlow = () => {
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
     const [isOtpSent, setIsOtpSent] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState("");
 
     useEffect(() => {
         const initBooking = async () => {
@@ -110,7 +111,9 @@ const BookingFlow = () => {
         setLoading(true);
         try {
             await patientService.verifyOtp(phone, otp, false); // Pass false to NOT delete yet
-            setStep(4);
+            // Finalize booking directly after OTP verification
+            // In Model B (Pay After Approval), the default payment option is "Clinic" (Pay Later)
+            await handleBookingFinalize("Clinic");
         } catch (error) {
             console.error("OTP verify error:", error);
             alert(error.response?.data?.message || "Invalid OTP or expired.");
@@ -135,13 +138,9 @@ const BookingFlow = () => {
 
             const result = await patientService.bookAppointment(bookingData);
 
-            // Backend returns { success: true, message: "...", data: { appointment, paymentData } }
-            // Handle Payment Redirection or Success Screen
-            if (result.data?.paymentData?.payment_url) {
-                window.location.href = result.data.paymentData.payment_url;
-            } else {
-                setStep(5);
-            }
+            // In Model B (Pay After Approval), we always show the "Request Sent" screen (Step 5).
+            // The patient will be notified to pay AFTER the doctor approves the request.
+            setStep(5);
         } catch (error) {
             console.error("Booking error:", error);
             alert(error.response?.data?.message || "Booking failed. Please try again.");
@@ -160,28 +159,29 @@ const BookingFlow = () => {
 
     return (
         <div className="max-w-4xl mx-auto py-10 px-4 animate-fadeIn">
-            {/* Progress Bar */}
-            <div className="mb-12">
-                <div className="flex justify-between items-center mb-4">
-                    {["Specialist", "Schedule", "Details", "Confirm"].map((label, i) => (
-                        <div key={i} className={`flex flex-col items-center flex-1 relative`}>
-                            <div className={`
+            {/* Progress Bar - Hidden on Success */}
+            {step < 5 && (
+                <div className="mb-12">
+                    <div className="flex justify-between items-center mb-4">
+                        {["Specialist", "Schedule", "Details", "Confirm"].map((label, i) => (
+                            <div key={i} className={`flex flex-col items-center flex-1 relative`}>
+                                <div className={`
                                 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 transition-all duration-500
                                 ${step > i + 1 ? "bg-teal-500 text-white" : step === i + 1 ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "bg-slate-100 text-slate-400"}
                             `}>
-                                {step > i + 1 ? <CheckCircle2 className="w-6 h-6" /> : i + 1}
+                                    {step > i + 1 ? <CheckCircle2 className="w-6 h-6" /> : i + 1}
+                                </div>
+                                <span className={`text-[10px] font-black uppercase mt-2 tracking-widest ${step === i + 1 ? "text-teal-600" : "text-slate-400"}`}>
+                                    {label}
+                                </span>
+                                {i < 3 && (
+                                    <div className={`absolute left-[50%] top-5 w-full h-1 -z-0 ${step > i + 1 ? "bg-teal-500" : "bg-slate-100"}`}></div>
+                                )}
                             </div>
-                            <span className={`text-[10px] font-black uppercase mt-2 tracking-widest ${step === i + 1 ? "text-teal-600" : "text-slate-400"}`}>
-                                {label}
-                            </span>
-                            {i < 3 && (
-                                <div className={`absolute left-[50%] top-5 w-full h-1 -z-0 ${step > i + 1 ? "bg-teal-500" : "bg-slate-100"}`}></div>
-                            )}
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
-
+            )}
             {/* Step 1: Doctor Selection */}
             {step === 1 && (
                 <div className="space-y-8 animate-slideIn">
@@ -293,7 +293,7 @@ const BookingFlow = () => {
 
                     <div className="text-center">
                         <h2 className="text-3xl font-black text-slate-800 italic">Verification</h2>
-                        <p className="text-slate-400 font-medium mt-2">Confirm your phone number for doctor contact</p>
+                        <p className="text-slate-400 font-medium mt-2">Confirm your phone number to finalize your request</p>
                     </div>
 
                     {!isOtpSent ? (
@@ -338,89 +338,16 @@ const BookingFlow = () => {
                             </div>
                             <button
                                 onClick={handleVerifyOtp}
-                                disabled={otp.length < 6}
+                                disabled={otp.length < 6 || loading}
                                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-transform disabled:opacity-50"
                             >
-                                Verify & Continue
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Verify & Request Appointment"}
                             </button>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Step 4: Final Confirmation & Payment */}
-            {step === 4 && (
-                <div className="space-y-10 animate-slideIn">
-                    <h2 className="text-3xl font-black text-slate-800">Final Confirmation</h2>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Summary */}
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-8">
-                            <h3 className="text-xl font-bold text-slate-800 border-b border-slate-50 pb-4">Booking Summary</h3>
-
-                            <div className="space-y-6">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600"><User className="w-6 h-6" /></div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Specialist</p>
-                                        <p className="text-slate-800 font-bold">{selectedDoctor.fullName}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600"><CalendarIcon className="w-6 h-6" /></div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Date & Time</p>
-                                        <p className="text-slate-800 font-bold">{new Date(selectedDate).toLocaleDateString()} at {selectedSlot}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-600"><MapPin className="w-6 h-6" /></div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Location</p>
-                                        <p className="text-slate-800 font-bold">{clinic.clinicName}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pt-8 border-t border-slate-50 flex justify-between items-center">
-                                <span className="text-slate-400 font-bold">Consultation Fee</span>
-                                <span className="text-2xl font-black text-slate-800">Rs. {selectedDoctor.consultationFee || 500}</span>
-                            </div>
-                        </div>
-
-                        {/* Payment Selection */}
-                        <div className="space-y-6">
-                            <div
-                                onClick={() => handleBookingFinalize("Clinic")}
-                                className="group p-8 bg-white rounded-[2.5rem] border border-slate-100 hover:border-teal-500 hover:bg-teal-50/10 cursor-pointer transition-all flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-5">
-                                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-teal-500 group-hover:text-white transition-colors"><ShieldCheck className="w-7 h-7" /></div>
-                                    <div>
-                                        <h4 className="text-lg font-black text-slate-800 tracking-tight">Pay at Clinic</h4>
-                                        <p className="text-slate-400 text-xs font-medium">Verify and pay directly at desk</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-teal-500 group-hover:translate-x-1 transition-all" />
-                            </div>
-
-                            <div
-                                onClick={() => handleBookingFinalize("Online")}
-                                className="group p-8 bg-slate-900 border border-slate-800 rounded-[2.5rem] hover:bg-emerald-600 cursor-pointer transition-all flex items-center justify-between"
-                            >
-                                <div className="flex items-center space-x-5">
-                                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-white/50 group-hover:bg-white group-hover:text-emerald-600 transition-colors"><CreditCard className="w-7 h-7" /></div>
-                                    <div>
-                                        <h4 className="text-lg font-black text-white tracking-tight">Digital Payment</h4>
-                                        <p className="text-white/40 text-xs font-medium">Pay securely via Khalti / eSewa</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="w-6 h-6 text-white/20 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Step 5: Success Screen */}
             {step === 5 && (
@@ -428,10 +355,20 @@ const BookingFlow = () => {
                     <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
                         <CheckCircle2 className="w-12 h-12 text-emerald-600" />
                     </div>
-                    <h2 className="text-4xl font-black text-slate-800 mb-4 italic">Successfully Booked!</h2>
+                    <h2 className="text-4xl font-black text-slate-800 mb-4 italic">Request Sent!</h2>
                     <p className="text-slate-500 max-w-md mx-auto font-medium">
-                        Your appointment with {selectedDoctor.fullName} has been scheduled. Check your dashboard for details.
+                        Your appointment request for Dr. {selectedDoctor.fullName} has been submitted.
                     </p>
+                    <div className="mt-6 bg-teal-50 p-6 rounded-[2rem] border border-teal-100 max-w-lg mx-auto">
+                        <p className="text-teal-800 font-bold text-sm">
+                            Next Steps:
+                        </p>
+                        <ul className="text-teal-600 text-xs font-medium mt-2 space-y-2 list-none">
+                            <li>1. Doctor will review your requested time slot.</li>
+                            <li>2. You'll get a notification & email once approved.</li>
+                            <li>3. Complete the payment to fully confirm your slot!</li>
+                        </ul>
+                    </div>
 
                     <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-4">
                         <button

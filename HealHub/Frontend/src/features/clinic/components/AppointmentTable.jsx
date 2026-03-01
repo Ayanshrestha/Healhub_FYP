@@ -6,9 +6,9 @@ const AppointmentTable = ({ appointments = [], onStatusUpdate }) => {
     const [selectedAppointment, setSelectedAppointment] = useState(null);
     const getStatusStyle = (status) => {
         switch (status) {
-            case "Confirmed": case "Approved": return "bg-teal-100 text-teal-700";
+            case "Confirmed": case "Approved": return "bg-blue-50 text-blue-600 border border-blue-100";
             case "Pending": return "bg-amber-100 text-amber-700";
-            case "Completed": return "bg-gray-100 text-gray-700";
+            case "Completed": return "bg-emerald-50 text-emerald-600 border border-emerald-100";
             case "Cancelled": return "bg-red-100 text-red-700";
             default: return "bg-blue-100 text-blue-700";
         }
@@ -66,9 +66,16 @@ const AppointmentTable = ({ appointments = [], onStatusUpdate }) => {
                                         </div>
                                     </td>
                                     <td className="py-4 px-6">
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight ${getStatusStyle(appt.status)}`}>
-                                            {appt.status}
-                                        </span>
+                                        <div className="flex flex-col gap-1">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight w-fit ${getStatusStyle(appt.status)}`}>
+                                                {appt.status}
+                                            </span>
+                                            {(appt.status === "Confirmed" || appt.status === "Approved" || appt.status === "Completed") && (
+                                                <span className={`px-3 py-1 text-white rounded-lg text-[8px] font-black uppercase tracking-tighter w-fit shadow-sm ${appt.paymentStatus === 'Paid' ? 'bg-emerald-500 shadow-emerald-200' : 'bg-rose-500 shadow-rose-200'}`}>
+                                                    {appt.paymentStatus === 'Paid' ? 'PAID' : 'UNPAID'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="py-4 px-6 text-right">
                                         <div className="flex items-center justify-end space-x-2">

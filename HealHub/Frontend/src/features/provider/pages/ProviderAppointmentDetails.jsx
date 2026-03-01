@@ -11,7 +11,14 @@ import {
     Home,
     Video,
     MapPin,
-    ArrowLeft
+    ArrowLeft,
+    FileText,
+    Upload,
+    ExternalLink,
+    Paperclip,
+    Trash2,
+    FilePlus,
+    UserMinus
 } from "lucide-react";
 import * as providerService from "../services/providerService";
 
@@ -22,6 +29,9 @@ const ProviderAppointmentDetails = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [fileType, setFileType] = useState("PRESCRIPTION");
 
     useEffect(() => {
         fetchDetails();
@@ -55,6 +65,23 @@ const ProviderAppointmentDetails = () => {
             setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to update status' });
         } finally {
             setActionLoading(false);
+        }
+    };
+
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        if (selectedFiles.length === 0) return;
+
+        try {
+            setUploading(true);
+            await providerService.uploadClinicalAttachments(id, selectedFiles, fileType);
+            setMessage({ type: 'success', text: 'Clinical documents uploaded successfully!' });
+            setSelectedFiles([]);
+            fetchDetails();
+        } catch (err) {
+            setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to upload documents' });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -134,7 +161,12 @@ const ProviderAppointmentDetails = () => {
                                     Blood: {appointment.patientId?.bloodGroup || "N/A"}
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">{appointment.patientId?.address}</p>
+                            <div className="flex gap-2 mt-3 text-white">
+                                <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg ${appointment.paymentStatus === 'Paid' ? 'bg-emerald-500 shadow-emerald-200' : 'bg-rose-500 shadow-rose-200'}`}>
+                                    {appointment.paymentStatus === 'Paid' ? 'PAID' : 'UNPAID'}
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-400 mt-2">{appointment.patientId?.address}</p>
                         </div>
                     </div>
                 </div>
@@ -158,7 +190,11 @@ const ProviderAppointmentDetails = () => {
                             {appointment.appointmentType === 'HOME_VISIT' ? <Home className="w-4 h-4 text-purple-500" /> : <Video className="w-4 h-4 text-purple-500" />}
                             <span>{String(appointment.appointmentType || "").replace('_', ' ')}</span>
                         </div>
-                        <span className="inline-block mt-2 px-3 py-1 bg-white rounded-full text-xs font-black uppercase tracking-wider text-purple-600 border border-purple-100">
+                        <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${appointment.status === 'Approved' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                            appointment.status === 'Cancelled' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                appointment.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                    'bg-purple-100 text-purple-600 border-purple-100'
+                            }`}>
                             {appointment.status}
                         </span>
                     </div>
@@ -182,12 +218,82 @@ const ProviderAppointmentDetails = () => {
                     </div>
                 )}
 
+                {/* Clinical Attachments */}
+                <div className="bg-white border border-slate-100 p-6 rounded-3xl space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <FilePlus className="w-4 h-4 text-teal-500" />
+                            <span>Clinical Documents</span>
+                        </h3>
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{appointment.attachments?.length || 0} Files Attached</span>
+                    </div>
+
+                    {appointment.attachments?.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {appointment.attachments.map((file, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-teal-600 shadow-sm">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="text-xs font-black text-gray-900 block truncate max-w-[150px]">{file.name}</span>
+                                            <span className="text-[9px] font-black text-teal-600 uppercase tracking-widest">{file.fileType}</span>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href={`${import.meta.env.VITE_API_URL}${file.url}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-2 bg-white rounded-lg text-slate-400 hover:text-teal-600 shadow-sm transition-all"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                    </a>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Upload Interface */}
+                    <div className="p-6 bg-teal-50/30 rounded-3xl border-2 border-dashed border-teal-100">
+                        <form onSubmit={handleUpload} className="space-y-4">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <select
+                                    value={fileType}
+                                    onChange={(e) => setFileType(e.target.value)}
+                                    className="bg-white border border-teal-100 p-3 rounded-xl text-xs font-bold font-primary text-teal-700 outline-none"
+                                >
+                                    <option value="PRESCRIPTION">PRESCRIPTION</option>
+                                    <option value="REPORT">TEST REPORT</option>
+                                    <option value="OTHER">OTHER DOCUMENT</option>
+                                </select>
+                                <input
+                                    type="file"
+                                    multiple
+                                    onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+                                    className="flex-1 text-xs font-bold text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-teal-600 file:text-white hover:file:bg-teal-700 cursor-pointer"
+                                />
+                            </div>
+                            {selectedFiles.length > 0 && (
+                                <button
+                                    type="submit"
+                                    disabled={uploading}
+                                    className="w-full bg-teal-600 text-white p-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-teal-100 hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                    <span>{uploading ? 'Uploading...' : 'Confirm Upload'}</span>
+                                </button>
+                            )}
+                        </form>
+                    </div>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
                     {appointment.status === 'Pending' && !actionLoading && (
                         <>
                             <button
-                                onClick={() => handleStatusUpdate('Cancelled')}
+                                onClick={() => handleStatusUpdate('Rejected')}
                                 className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-sm"
                             >
                                 Reject
@@ -202,12 +308,27 @@ const ProviderAppointmentDetails = () => {
                         </>
                     )}
                     {appointment.status === 'Approved' && !actionLoading && (
-                        <button
-                            onClick={() => handleStatusUpdate('Completed')}
-                            className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-900 text-white hover:bg-black transition-all shadow-lg shadow-gray-200"
-                        >
-                            Mark Completed
-                        </button>
+                        <>
+                            <button
+                                onClick={() => handleStatusUpdate('Cancelled')}
+                                className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                            >
+                                Cancel Appointment
+                            </button>
+                            <button
+                                onClick={() => handleStatusUpdate('No-Show')}
+                                className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-900 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                            >
+                                <UserMinus className="w-4 h-4" />
+                                <span>No-Show</span>
+                            </button>
+                            <button
+                                onClick={() => handleStatusUpdate('Completed')}
+                                className="px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                            >
+                                Mark Completed
+                            </button>
+                        </>
                     )}
                     {actionLoading && (
                         <div className="px-6 py-3 rounded-2xl font-bold text-xs text-gray-400 bg-gray-50 border border-gray-100 cursor-not-allowed">
