@@ -82,11 +82,24 @@ export const approveAffiliation = async (clinicId, affiliationId, status) => {
 
 export const getDoctorDetails = async (doctorId, clinicId) => {
     // Attempt to find in Doctor model first
-    let doctor = await Doctor.findOne({ _id: doctorId, verifiedBy: clinicId }).populate("userId", "-password");
+    // Allow viewing if affiliated with THIS clinic OR if verified in general (facilitates discovery)
+    let doctor = await Doctor.findOne({
+        _id: doctorId,
+        $or: [
+            { verifiedBy: clinicId },
+            { verificationStatus: "verified" }
+        ]
+    }).populate("userId", "-password");
 
     // If not found, try Therapist model
     if (!doctor) {
-        doctor = await Therapist.findOne({ _id: doctorId, verifiedBy: clinicId }).populate("userId", "-password");
+        doctor = await Therapist.findOne({
+            _id: doctorId,
+            $or: [
+                { verifiedBy: clinicId },
+                { verificationStatus: "verified" }
+            ]
+        }).populate("userId", "-password");
     }
 
     return doctor;

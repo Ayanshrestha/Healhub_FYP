@@ -22,6 +22,17 @@ const PatientManagementPage = () => {
 
     useEffect(() => {
         fetchPatients();
+
+        const handleRead = (e) => {
+            const { appointmentId } = e.detail;
+            console.log(`🧹 Clearing unread badge for patient latest appointment: ${appointmentId}`);
+            setPatients(prev => prev.map(patient =>
+                patient.latestAppointmentId === appointmentId ? { ...patient, unreadCount: 0 } : patient
+            ));
+        };
+
+        window.addEventListener('clinical_messages_read', handleRead);
+        return () => window.removeEventListener('clinical_messages_read', handleRead);
     }, []);
 
     return (

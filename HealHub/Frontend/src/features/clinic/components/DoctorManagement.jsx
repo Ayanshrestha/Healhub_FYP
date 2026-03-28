@@ -62,6 +62,13 @@ const DoctorManagement = ({
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <button
+                                            onClick={() => navigate(`/clinic/doctors/${app.providerId?._id}`)}
+                                            className="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition flex items-center justify-center gap-1.5"
+                                        >
+                                            <Eye className="w-3.5 h-3.5" />
+                                            View Profile
+                                        </button>
+                                        <button
                                             onClick={() => onAffiliationAction(app._id, 'ACTIVE')}
                                             className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition shadow-sm"
                                         >
@@ -212,12 +219,21 @@ const DoctorManagement = ({
                                         </div>
                                     </div>
 
-                                    <button
-                                        onClick={() => onInvite(doc._id)}
-                                        className="w-full py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-400 transition-colors shadow-lg"
-                                    >
-                                        Send Invitation
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => navigate(`/clinic/doctors/${doc._id}`)}
+                                            className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            Profile
+                                        </button>
+                                        <button
+                                            onClick={() => onInvite(doc._id)}
+                                            className="flex-[2] py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-400 transition-colors shadow-lg"
+                                        >
+                                            Send Invitation
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}

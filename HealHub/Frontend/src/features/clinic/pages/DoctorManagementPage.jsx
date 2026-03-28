@@ -3,6 +3,7 @@ import ClinicLayout from "../../../layouts/ClinicLayout";
 import DoctorManagement from "../components/DoctorManagement";
 import clinicService from "../services/clinicService";
 import { Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const DoctorManagementPage = () => {
     const [doctors, setDoctors] = useState([]);
@@ -35,19 +36,20 @@ const DoctorManagementPage = () => {
     const handleAffiliationAction = async (affiliationId, status) => {
         try {
             await clinicService.handleAffiliation(affiliationId, status);
+            toast.success(`Request ${status.toLowerCase()} successfully`);
             fetchData(); // Refresh all lists
         } catch (error) {
-            alert(error.response?.data?.message || "Failed to update affiliation status");
+            toast.error(error.response?.data?.message || "Failed to update affiliation status");
         }
     };
 
     const handleInvite = async (doctorId) => {
         try {
             await clinicService.inviteDoctor(doctorId);
-            alert("Invitation sent successfully!");
+            toast.success("Invitation sent successfully!");
             fetchData();
         } catch (error) {
-            alert(error.response?.data?.message || "Failed to send invitation");
+            toast.error(error.response?.data?.message || "Failed to send invitation");
         }
     };
 
@@ -55,9 +57,10 @@ const DoctorManagementPage = () => {
         if (!window.confirm("Are you sure you want to remove this doctor?")) return;
         try {
             await clinicService.removeDoctor(doctorId);
+            toast.success("Doctor removed from affiliation");
             fetchData();
         } catch (error) {
-            alert("Failed to remove doctor");
+            toast.error("Failed to remove doctor");
         }
     };
 
