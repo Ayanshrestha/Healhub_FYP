@@ -2,16 +2,16 @@ export const SUBSCRIPTION_PLANS = {
     BASIC: {
         name: "BASIC",
         durationInMonths: 1,
-        amount: 10, // Minimum required by Khalti is 10 NPR
+        amount: 1000, // Amount in NPR
     },
     STANDARD: {
         name: "STANDARD",
         durationInMonths: 6,
-        amount: 20,
+        amount: 5000,
     },
     PREMIUM: {
         name: "PREMIUM",
         durationInMonths: 12,
-        amount: 30,
+        amount: 10000,
     },
 };
