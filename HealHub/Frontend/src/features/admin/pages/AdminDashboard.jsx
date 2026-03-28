@@ -16,6 +16,7 @@ import {
     AlertCircle,
     Loader2
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import UserManagementList from "../components/UserManagementList";
 import ClinicApprovalPanel from "../components/ClinicApprovalPanel";
 import SystemStatusPanel from "../components/SystemStatusPanel";
@@ -66,11 +67,11 @@ const AdminDashboard = () => {
         try {
             setActionLoading(true);
             await updateClinicStatus(clinicId, status);
-            alert(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
+            toast.success(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
             setSelectedClinic(null);
             fetchData();
         } catch (err) {
-            alert(err.message || "Action failed");
+            toast.error(err.message || "Action failed");
         } finally {
             setActionLoading(false);
         }

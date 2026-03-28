@@ -91,9 +91,9 @@ const PlatformAnalytics = () => {
                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-4">
                                 <DollarSign className="w-5 h-5 text-blue-600" />
                             </div>
-                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">Verified Doctors</div>
-                            <div className="text-3xl font-black text-gray-900">{stats?.doctors?.toLocaleString() || "0"}</div>
-                            <div className="text-xs text-blue-600 font-bold mt-2">Onboarded experts</div>
+                            <div className="text-sm font-bold text-gray-500 uppercase tracking-widest mb-1">Platform Revenue</div>
+                            <div className="text-3xl font-black text-gray-900">Rs. {stats?.totalRevenue?.toLocaleString() || "0"}</div>
+                            <div className="text-xs text-blue-600 font-bold mt-2">Subscription earnings</div>
                         </div>
                     </div>
 

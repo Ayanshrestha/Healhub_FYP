@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import User from "../../models/user.js";
 import Clinic from "../../models/clinic.js";
 import Doctor from "../../models/doctor.js";
+import Payment from "../../models/payment.js";
 
 /**
  * Real-time System Health Check
@@ -56,6 +57,10 @@ export const getDashboardSummary = async () => {
             therapists: await User.countDocuments({ role: "therapist" })
         },
         doctors: verifiedDoctors,
+        totalRevenue: (await Payment.aggregate([
+            { $match: { paymentType: "SUBSCRIPTION", status: "COMPLETED" } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]))[0]?.total || 0,
         platformHealth: suspendedUsers > totalUsers * 0.1 ? "Critical" : "Optimal"
     };
 };
