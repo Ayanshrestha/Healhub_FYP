@@ -119,6 +119,46 @@ const clinicService = {
         // Point to the dedicated payment route that allows APPROVED_UNPAID clinics
         const response = await api.post("/payment/initiate", { plan: planName });
         return response.data;
+    },
+
+    // Messaging
+    sendMessage: async (messageData) => {
+        // messageData should include appointmentId, content, type, attachments, context, and tempId
+        const response = await api.post("/clinic/messages", messageData);
+        return response.data;
+    },
+
+    getChatHistory: async (appointmentId) => {
+        const response = await api.get(`/clinic/messages/${appointmentId}`);
+        return response.data.data;
+    },
+
+    markMessagesRead: async (appointmentId) => {
+        const response = await api.patch(`/clinic/messages/${appointmentId}/read`);
+        return response.data;
+    },
+
+    getUnreadCounts: async () => {
+        const response = await api.get("/clinic/messages/unread-counts");
+        return response.data.data;
+    },
+
+    uploadFile: async (formData) => {
+        const response = await api.post("/clinic/messages/upload", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
+    },
+
+    uploadClinicImages: async (formData) => {
+        const response = await api.post("/clinic/profile/images", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
+        return response.data;
     }
 };
 

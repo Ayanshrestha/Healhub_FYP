@@ -5,8 +5,9 @@ const clinicSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,  // Not required until admin approves and clinic sets a password
       unique: true,
+      sparse: true,     // Allow multiple null values (unique only applies to non-null)
     },
 
     clinicName: {
@@ -106,6 +107,20 @@ const clinicSchema = new mongoose.Schema(
       doctorRequests: { type: Boolean, default: true },
       subscriptionExpiry: { type: Boolean, default: true },
       adminMessages: { type: Boolean, default: true },
+    },
+
+    clinicImage: {
+      type: String,
+      default: "",
+    },
+
+    clinicLogo: {
+      type: String,
+      default: "",
+    },
+    location: {
+      lat: { type: Number },
+      lng: { type: Number },
     },
   },
   { timestamps: true }

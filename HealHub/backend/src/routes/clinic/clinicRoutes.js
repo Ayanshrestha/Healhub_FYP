@@ -9,6 +9,9 @@ import authMiddleware from "../../middlewares/authMiddleware.js";
 import clinicStatusMiddleware from "../../middlewares/clinicStatusMiddleware.js";
 import roleMiddleware from "../../middlewares/roleMiddleware.js";
 
+import * as clinicMessagingController from "../../controllers/clinic/clinicMessagingController.js";
+import upload from "../../config/multerConfig.js";
+
 const router = express.Router();
 
 // All routes require auth and clinic role
@@ -18,6 +21,10 @@ router.use(roleMiddleware("clinic"));
 // Profile (Always accessible for authenticated clinics)
 router.get("/profile", clinicProfileController.getProfile);
 router.patch("/profile", clinicProfileController.updateProfile);
+router.post("/profile/images", upload.fields([
+    { name: "clinicImage", maxCount: 1 },
+    { name: "clinicLogo", maxCount: 1 }
+]), clinicProfileController.uploadImages);
 router.patch("/settings/preferences", clinicProfileController.updatePreferences);
 router.patch("/settings/change-password", clinicProfileController.changePassword);
 
@@ -49,5 +56,12 @@ router.get("/patients/:patientId/history", clinicPatientController.getHistory);
 // Notifications
 router.get("/notifications", clinicNotificationController.getNotifications);
 router.patch("/notifications/:notificationId/read", clinicNotificationController.readNotification);
+
+// Messaging
+router.get("/messages/unread-counts", clinicMessagingController.getUnreadCounts);
+router.get("/messages/:appointmentId", clinicMessagingController.getHistory);
+router.post("/messages", clinicMessagingController.sendMessage);
+router.patch("/messages/:appointmentId/read", clinicMessagingController.markRead);
+router.post("/messages/upload", upload.single("attachment"), clinicMessagingController.uploadFile);
 
 export default router;
