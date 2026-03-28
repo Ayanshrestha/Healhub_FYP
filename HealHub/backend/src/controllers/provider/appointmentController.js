@@ -2,6 +2,7 @@ import Appointment from "../../models/appointment.js";
 import * as providerService from "../../services/provider/providerService.js";
 import { logAction } from "../../utils/auditLogger.js";
 import { createNotification } from "../../services/notificationService.js";
+import { sendEmail, getAppointmentConfirmationTemplate, getAppointmentRejectionTemplate, getPaymentRequiredTemplate } from "../../services/common/emailService.js";
 
 export const getAppointments = async (req, res) => {
     try {
@@ -58,7 +59,11 @@ export const updateAppointmentStatus = async (req, res) => {
         const appointment = await Appointment.findOne({
             _id: appointmentId,
             providerId: provider._id
-        }).populate("providerId", "fullName");
+        })
+            .populate("patientId", "fullName email")
+            .populate("providerId", "fullName consultationFee")
+            .populate("clinicId", "clinicName");
+
 
         if (!appointment) {
             return res.status(404).json({ success: false, message: "Appointment not found or unauthorized" });
@@ -85,11 +90,20 @@ export const updateAppointmentStatus = async (req, res) => {
         // 4. Update Status
         appointment.status = status;
         if (notes) appointment.notes = notes;
+
+        // --- NEW: Handle Earnings for 'Pay at Clinic' on Completion ---
+        if (status === "Completed" && !appointment.doctorEarning) {
+            const fee = appointment.consultationFee || (appointment.providerId?.consultationFee) || 0;
+            appointment.clinicEarning = Number((fee * 0.30).toFixed(2));
+            appointment.doctorEarning = Number((fee * 0.70).toFixed(2));
+            appointment.paymentStatus = "Paid"; // Mark as paid since it's completed at clinic
+        }
+
         await appointment.save();
 
         await logAction(req, "APPOINTMENT_STATUS_UPDATE", `Appointment ${appointmentId} set to ${status}`);
 
-        // Notify Patient
+        // Notify Patient (In-App)
         await createNotification({
             recipientId: appointment.patientId,
             recipientModel: "User",
@@ -98,6 +112,95 @@ export const updateAppointmentStatus = async (req, res) => {
             type: "APPOINTMENT",
             priority: ["Cancelled", "Rejected", "No-Show"].includes(status) ? "ERROR" : "SUCCESS"
         });
+
+        // --- NEW: SEND STATUS UPDATE EMAIL (Hospital Workflow) ---
+        const patient = appointment.patientId;
+        const doctor = appointment.providerId;
+        const clinic = appointment.clinicId;
+
+        if (patient && patient.email) {
+            try {
+                const dateStr = appointment.appointmentDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // 1. Send Confirmation or Payment Required (Pending -> Approved)
+                if (status === "Approved" && !appointment.confirmationEmailSent) {
+                    if (appointment.paymentOption === "Online" && appointment.paymentStatus === "Pending") {
+                        // MODEL B: Send Payment Required Email
+                        const emailHtml = getPaymentRequiredTemplate({
+                            patientName: patient.fullName,
+                            doctorName: doctor.fullName,
+                            clinicName: clinic ? clinic.clinicName : "HealHub Clinic",
+                            date: dateStr,
+                            timeSlot: appointment.timeSlot,
+                            amount: appointment.providerId?.consultationFee || "N/A"
+                        });
+
+                        await sendEmail({
+                            to: patient.email,
+                            subject: `Action Required: Pay for your appointment with Dr. ${doctor.fullName} 💳`,
+                            html: emailHtml
+                        });
+
+                        // Notify patient that they need to pay
+                        await createNotification({
+                            recipientId: appointment.patientId,
+                            recipientModel: "User",
+                            title: "Payment Required 💳",
+                            message: `Your appointment with Dr. ${doctor.fullName} is approved. Please complete payment to confirm your slot.`,
+                            type: "APPOINTMENT",
+                            priority: "URGENT"
+                        });
+                    } else {
+                        // For Pay at Clinic or already paid (if re-approved)
+                        const emailHtml = getAppointmentConfirmationTemplate({
+                            patientName: patient.fullName,
+                            doctorName: doctor.fullName,
+                            clinicName: clinic ? clinic.clinicName : "HealHub Clinic",
+                            date: dateStr,
+                            timeSlot: appointment.timeSlot,
+                            bookingRef: appointment._id.toString().slice(-6).toUpperCase(),
+                            amount: appointment.providerId?.consultationFee || "N/A"
+                        });
+
+                        await sendEmail({
+                            to: patient.email,
+                            subject: `Appointment Confirmed: Dr. ${doctor.fullName} ✅`,
+                            html: emailHtml
+                        });
+
+                        appointment.confirmationEmailSent = true;
+                    }
+                    await appointment.save();
+                }
+
+                // 2. Send Rejection Email (-> Rejected)
+                if (status === "Rejected" && !appointment.rejectionEmailSent) {
+                    const emailHtml = getAppointmentRejectionTemplate({
+                        patientName: patient.fullName,
+                        doctorName: doctor.fullName,
+                        date: dateStr,
+                        timeSlot: appointment.timeSlot,
+                        reason: notes || "No specific reason provided"
+                    });
+
+                    await sendEmail({
+                        to: patient.email,
+                        subject: `Update regarding your appointment request 🛑`,
+                        html: emailHtml
+                    });
+
+                    appointment.rejectionEmailSent = true;
+                    await appointment.save();
+                }
+            } catch (emailErr) {
+                console.error("❌ Failed to send status update email:", emailErr);
+            }
+        }
 
         res.status(200).json({ success: true, appointment });
     } catch (error) {
