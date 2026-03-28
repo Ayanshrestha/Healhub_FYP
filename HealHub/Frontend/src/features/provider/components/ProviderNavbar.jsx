@@ -15,6 +15,7 @@ import {
     Settings
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { clearSession } from "../../../services/api";
 import NotificationDropdown from "../../patient/components/NotificationDropdown";
 
 const ProviderNavbar = () => {
@@ -22,6 +23,7 @@ const ProviderNavbar = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     const navLinks = [
         { name: "Dashboard", path: "/provider/dashboard", icon: LayoutDashboard },
@@ -32,8 +34,7 @@ const ProviderNavbar = () => {
     ];
 
     const handleLogout = () => {
-        localStorage.removeItem("provider_token");
-        localStorage.removeItem("provider_status");
+        clearSession();
         navigate("/login");
     };
 
@@ -86,8 +87,16 @@ const ProviderNavbar = () => {
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center space-x-3 focus:outline-none cursor-pointer group"
                             >
-                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all">
-                                    PV
+                                <div className="text-right hidden xl:block">
+                                    <p className="text-xs font-bold text-gray-900 leading-none group-hover:text-teal-600 transition-colors uppercase tracking-tight">{user.fullName || "Medical Staff"}</p>
+                                    <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-0.5">Verified Medical Staff</p>
+                                </div>
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white">
+                                    {user.profilePhoto ? (
+                                        <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                                    ) : (
+                                        (user.fullName?.charAt(0) || "P").toUpperCase()
+                                    )}
                                 </div>
                             </button>
 
