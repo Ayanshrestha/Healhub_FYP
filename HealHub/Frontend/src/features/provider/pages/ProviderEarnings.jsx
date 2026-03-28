@@ -150,9 +150,9 @@ const ProviderEarnings = () => {
                             </span>
                         </div>
                         <div className="mt-8">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Available Balance</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Earnings</p>
                             <h3 className="text-4xl font-black text-gray-900 mt-1">Rs. {earningsData?.totalEarnings?.toLocaleString() || "0"}</h3>
-                            <p className="text-xs font-bold text-gray-500 mt-2 italic">Next payout scheduled for Monday</p>
+                            <p className="text-xs font-bold text-gray-500 mt-2 italic">Based on completed consultations</p>
                         </div>
                     </div>
                 </div>
@@ -259,7 +259,7 @@ const ProviderEarnings = () => {
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-right font-black text-emerald-600 text-sm">
-                                            + {txn.consultationFee?.toLocaleString() || "0"}
+                                            + {txn.doctorEarning?.toLocaleString() || "0"}
                                         </td>
                                     </tr>
                                 )) : (
