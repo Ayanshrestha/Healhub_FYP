@@ -3,6 +3,7 @@ import ClinicLayout from "../../../layouts/ClinicLayout";
 import AppointmentTable from "../components/AppointmentTable";
 import clinicService from "../services/clinicService";
 import { Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const AppointmentManagementPage = () => {
     const [appointments, setAppointments] = useState([]);
@@ -38,9 +39,10 @@ const AppointmentManagementPage = () => {
     const handleStatusUpdate = async (appointmentId, status) => {
         try {
             await clinicService.updateAppointmentStatus(appointmentId, status);
+            toast.success(`Appointment status updated to ${status.toLowerCase()}`);
             fetchAppointments(); // Refresh list
         } catch (error) {
-            alert("Failed to update status");
+            toast.error("Failed to update status");
         }
     };
 
