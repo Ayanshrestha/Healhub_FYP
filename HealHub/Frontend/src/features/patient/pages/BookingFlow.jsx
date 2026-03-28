@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import {
     ChevronRight,
     ArrowLeft,
@@ -39,7 +40,6 @@ const BookingFlow = () => {
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
     const [isOtpSent, setIsOtpSent] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState("");
 
     useEffect(() => {
         const initBooking = async () => {
@@ -77,8 +77,6 @@ const BookingFlow = () => {
         setSelectedSlot(""); // Clear previously selected slot
         setLoading(true);
         try {
-            // CRITICAL: Fetch Real-Time Availability
-            // We don't just show static hours; we calculate empty slots dynamically from the backend.
             const availableSlots = await patientService.getDoctorAvailability(selectedDoctor._id, date);
             setSlots(availableSlots || []);
         } catch (error) {
@@ -90,18 +88,21 @@ const BookingFlow = () => {
     };
 
     const handleConfirmSlots = () => {
+        if (!selectedSlot) {
+            return toast.error("Please select a time slot");
+        }
         if (selectedDate && selectedSlot) setStep(3);
     };
 
     const handleSendOtp = async () => {
         setLoading(true);
         try {
-            // Security Step: Verify phone to prevent spam bookings
             await patientService.sendOtp(phone);
+            toast.success("OTP sent to your phone");
             setIsOtpSent(true);
         } catch (error) {
             console.error("OTP send error:", error);
-            alert(error.response?.data?.message || "Failed to send OTP.");
+            toast.error(error.response?.data?.message || "Failed to send OTP.");
         } finally {
             setLoading(false);
         }
@@ -110,13 +111,11 @@ const BookingFlow = () => {
     const handleVerifyOtp = async () => {
         setLoading(true);
         try {
-            await patientService.verifyOtp(phone, otp, false); // Pass false to NOT delete yet
-            // Finalize booking directly after OTP verification
-            // In Model B (Pay After Approval), the default payment option is "Clinic" (Pay Later)
+            await patientService.verifyOtp(phone, otp, false);
             await handleBookingFinalize("Clinic");
         } catch (error) {
             console.error("OTP verify error:", error);
-            alert(error.response?.data?.message || "Invalid OTP or expired.");
+            toast.error(error.response?.data?.message || "Invalid OTP or expired.");
         } finally {
             setLoading(false);
         }
@@ -125,25 +124,22 @@ const BookingFlow = () => {
     const handleBookingFinalize = async (paymentMethod) => {
         setLoading(true);
         try {
-            // Construct the final payload for the backend
             const bookingData = {
                 clinicId,
                 doctorId: selectedDoctor._id,
                 appointmentDate: selectedDate,
                 timeSlot: selectedSlot,
-                phone, // Passed again for backend validation
-                otp,   // Passed again to prove ownership
-                paymentOption: paymentMethod // "Clinic" or "Online"
+                phone,
+                otp,
+                paymentOption: paymentMethod
             };
 
-            const result = await patientService.bookAppointment(bookingData);
-
-            // In Model B (Pay After Approval), we always show the "Request Sent" screen (Step 5).
-            // The patient will be notified to pay AFTER the doctor approves the request.
+            await patientService.bookAppointment(bookingData);
             setStep(5);
+            toast.success("Appointment request submitted successfully!");
         } catch (error) {
             console.error("Booking error:", error);
-            alert(error.response?.data?.message || "Booking failed. Please try again.");
+            toast.error(error.response?.data?.message || "Booking failed. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -161,32 +157,33 @@ const BookingFlow = () => {
         <div className="max-w-4xl mx-auto py-10 px-4 animate-fadeIn">
             {/* Progress Bar - Hidden on Success */}
             {step < 5 && (
-                <div className="mb-12">
+                <div className="mb-12 text-center">
                     <div className="flex justify-between items-center mb-4">
                         {["Specialist", "Schedule", "Details", "Confirm"].map((label, i) => (
-                            <div key={i} className={`flex flex-col items-center flex-1 relative`}>
+                            <div key={i} className="flex flex-col items-center flex-1 relative">
                                 <div className={`
-                                w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 transition-all duration-500
-                                ${step > i + 1 ? "bg-teal-500 text-white" : step === i + 1 ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "bg-slate-100 text-slate-400"}
-                            `}>
+                                    w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm z-10 transition-all duration-500
+                                    ${step > i + 1 ? "bg-teal-500 text-white" : step === i + 1 ? "bg-teal-600 text-white shadow-lg shadow-teal-200" : "bg-slate-100 text-slate-400"}
+                                `}>
                                     {step > i + 1 ? <CheckCircle2 className="w-6 h-6" /> : i + 1}
                                 </div>
                                 <span className={`text-[10px] font-black uppercase mt-2 tracking-widest ${step === i + 1 ? "text-teal-600" : "text-slate-400"}`}>
                                     {label}
                                 </span>
                                 {i < 3 && (
-                                    <div className={`absolute left-[50%] top-5 w-full h-1 -z-0 ${step > i + 1 ? "bg-teal-500" : "bg-slate-100"}`}></div>
+                                    <div className={`absolute left-[50%] top-5 w-full h-[2px] -z-0 ${step > i + 1 ? "bg-teal-500" : "bg-slate-100"}`}></div>
                                 )}
                             </div>
                         ))}
                     </div>
                 </div>
             )}
+
             {/* Step 1: Doctor Selection */}
             {step === 1 && (
                 <div className="space-y-8 animate-slideIn">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-3xl font-black text-slate-800">Select Specialist</h2>
+                        <h2 className="text-3xl font-black text-slate-800 italic uppercase italic">Select Specialist</h2>
                         <div className="flex items-center text-teal-600 bg-teal-50 px-4 py-2 rounded-xl font-bold text-sm">
                             <Stethoscope className="w-4 h-4 mr-2" />
                             {selectedDepartment}
@@ -225,10 +222,10 @@ const BookingFlow = () => {
             {/* Step 2: Date & Slot Selection */}
             {step === 2 && (
                 <div className="space-y-10 animate-slideIn">
-                    <button onClick={() => setStep(1)} className="flex items-center text-slate-400 font-bold text-xs uppercase tracking-widest"><ArrowLeft className="w-4 h-4 mr-2" /> Back</button>
+                    <button onClick={() => setStep(1)} className="flex items-center text-slate-400 font-bold text-xs uppercase tracking-widest italic"><ArrowLeft className="w-4 h-4 mr-2" /> Back</button>
 
                     <div>
-                        <h3 className="text-2xl font-black text-slate-800 mb-6">Choose Date</h3>
+                        <h3 className="text-2xl font-black text-slate-800 mb-6 italic uppercase tracking-tight italic">Choose Date</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                             {availableDates.map((date) => {
                                 const d = new Date(date);
@@ -254,12 +251,12 @@ const BookingFlow = () => {
 
                     {selectedDate && (
                         <div className="animate-fadeIn">
-                            <h3 className="text-2xl font-black text-slate-800 mb-6">Available Slots</h3>
+                            <h3 className="text-2xl font-black text-slate-800 mb-6 italic uppercase tracking-tight italic">Available Slots</h3>
                             {loading ? (
                                 <div className="flex justify-center"><Loader2 className="animate-spin text-teal-500" /></div>
                             ) : (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {slots.map((s) => (
+                                    {slots.length > 0 ? slots.map((s) => (
                                         <div
                                             key={s}
                                             onClick={() => setSelectedSlot(s)}
@@ -270,7 +267,9 @@ const BookingFlow = () => {
                                         >
                                             {s}
                                         </div>
-                                    ))}
+                                    )) : (
+                                        <p className="col-span-full text-center text-slate-400 font-bold text-sm">No slots available for this date.</p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -279,7 +278,7 @@ const BookingFlow = () => {
                     <button
                         disabled={!selectedSlot}
                         onClick={handleConfirmSlots}
-                        className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                        className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xl"
                     >
                         Confirm Schedule
                     </button>
@@ -289,7 +288,7 @@ const BookingFlow = () => {
             {/* Step 3: OTP & Personal Details */}
             {step === 3 && (
                 <div className="space-y-10 animate-slideIn max-w-xl mx-auto">
-                    <button onClick={() => setStep(2)} className="flex items-center text-slate-400 font-bold text-xs uppercase tracking-widest"><ArrowLeft className="w-4 h-4 mr-2" /> Back</button>
+                    <button onClick={() => setStep(2)} className="flex items-center text-slate-400 font-bold text-xs uppercase tracking-widest italic"><ArrowLeft className="w-4 h-4 mr-2" /> Back</button>
 
                     <div className="text-center">
                         <h2 className="text-3xl font-black text-slate-800 italic">Verification</h2>
@@ -299,7 +298,7 @@ const BookingFlow = () => {
                     {!isOtpSent ? (
                         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Phone Number</label>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Phone Number</label>
                                 <div className="relative">
                                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                                     <input
@@ -307,16 +306,16 @@ const BookingFlow = () => {
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
                                         placeholder="98XXXXXXXX"
-                                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all font-bold"
+                                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-bold"
                                     />
                                 </div>
                             </div>
                             <button
                                 onClick={handleSendOtp}
                                 disabled={phone.length < 10 || loading}
-                                className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-transform disabled:opacity-50"
+                                className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-700 transition-all disabled:opacity-50 shadow-lg shadow-teal-100"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Send OTP"}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Send OTP Code"}
                             </button>
                         </div>
                     ) : (
@@ -326,28 +325,27 @@ const BookingFlow = () => {
                                 <button onClick={() => setIsOtpSent(false)} className="text-[10px] font-black text-teal-600 uppercase underline">Change</button>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Enter 6-Digit Code</label>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Enter 6-Digit Code</label>
                                 <input
                                     type="text"
                                     maxLength={6}
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value)}
                                     placeholder="XXXXXX"
-                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all font-black text-center text-4xl tracking-[1rem]"
+                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-black text-center text-4xl tracking-[1rem]"
                                 />
                             </div>
                             <button
                                 onClick={handleVerifyOtp}
                                 disabled={otp.length < 6 || loading}
-                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-transform disabled:opacity-50"
+                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 transition-all disabled:opacity-50 shadow-xl"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Verify & Request Appointment"}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Verify & Finalize Request"}
                             </button>
                         </div>
                     )}
                 </div>
             )}
-
 
             {/* Step 5: Success Screen */}
             {step === 5 && (
@@ -355,31 +353,31 @@ const BookingFlow = () => {
                     <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
                         <CheckCircle2 className="w-12 h-12 text-emerald-600" />
                     </div>
-                    <h2 className="text-4xl font-black text-slate-800 mb-4 italic">Request Sent!</h2>
+                    <h2 className="text-4xl font-black text-slate-800 mb-4 italic uppercase">Request Sent!</h2>
                     <p className="text-slate-500 max-w-md mx-auto font-medium">
-                        Your appointment request for Dr. {selectedDoctor.fullName} has been submitted.
+                        Your appointment request for Dr. {selectedDoctor?.fullName} has been submitted.
                     </p>
-                    <div className="mt-6 bg-teal-50 p-6 rounded-[2rem] border border-teal-100 max-w-lg mx-auto">
-                        <p className="text-teal-800 font-bold text-sm">
-                            Next Steps:
+                    <div className="mt-6 bg-teal-50/50 p-6 rounded-[2rem] border border-teal-100 max-w-lg mx-auto">
+                        <p className="text-teal-800 font-black text-[10px] uppercase tracking-widest mb-3 italic">
+                            Next Steps
                         </p>
-                        <ul className="text-teal-600 text-xs font-medium mt-2 space-y-2 list-none">
-                            <li>1. Doctor will review your requested time slot.</li>
-                            <li>2. You'll get a notification & email once approved.</li>
-                            <li>3. Complete the payment to fully confirm your slot!</li>
+                        <ul className="text-teal-600 text-xs font-bold space-y-3 list-none">
+                            <li className="flex items-center justify-center gap-2"><div className="w-1.5 h-1.5 bg-teal-600 rounded-full"></div> Specialst will review your request</li>
+                            <li className="flex items-center justify-center gap-2"><div className="w-1.5 h-1.5 bg-teal-600 rounded-full"></div> Notification & email once approved</li>
+                            <li className="flex items-center justify-center gap-2"><div className="w-1.5 h-1.5 bg-teal-600 rounded-full"></div> Complete payment to secure slot</li>
                         </ul>
                     </div>
 
                     <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-4">
                         <button
                             onClick={() => navigate("/patient/dashboard")}
-                            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all"
+                            className="w-full md:w-auto px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 transition-all shadow-xl"
                         >
                             Go to Dashboard
                         </button>
                         <button
                             onClick={() => navigate("/patient/appointments")}
-                            className="px-10 py-4 bg-white border border-slate-200 text-slate-800 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-all"
+                            className="w-full md:w-auto px-10 py-4 bg-white border border-slate-200 text-slate-800 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-all"
                         >
                             View Appointment
                         </button>
