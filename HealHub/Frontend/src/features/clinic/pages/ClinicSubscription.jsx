@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Check, CreditCard, Loader2 } from "lucide-react";
 import axios from "axios";
 import clinicService from "../services/clinicService";
+import { toast } from "react-hot-toast";
 
 const ClinicSubscription = () => {
     const [loading, setLoading] = useState(null); // stores the plan name being processed
@@ -23,7 +24,7 @@ const ClinicSubscription = () => {
         },
         {
             name: "PREMIUM",
-            price: "9,000",
+            price: "10,000",
             duration: "12 Months",
             features: ["Everything in Standard", "Priority Support", "Custom Branding"],
             color: "bg-purple-600"
@@ -39,7 +40,7 @@ const ClinicSubscription = () => {
                 window.location.href = data.payment_url;
             }
         } catch (error) {
-            alert(error.response?.data?.message || error.message || "Failed to initiate payment");
+            toast.error(error.response?.data?.message || error.message || "Failed to initiate payment");
         } finally {
             setLoading(null);
         }

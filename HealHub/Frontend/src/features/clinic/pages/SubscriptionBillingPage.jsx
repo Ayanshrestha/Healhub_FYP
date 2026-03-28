@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import ClinicLayout from "../../../layouts/ClinicLayout";
 import { CreditCard, History, Shield, Download, Loader2 } from "lucide-react";
 import clinicService from "../services/clinicService";
+import { toast } from "react-hot-toast";
 
 const SubscriptionBillingPage = () => {
     const [profile, setProfile] = useState(null);
@@ -86,12 +87,12 @@ const SubscriptionBillingPage = () => {
                                         if (response.payment_url) {
                                             window.location.href = response.payment_url;
                                         } else {
-                                            alert("Failed to initiate payment. Please try again.");
+                                            toast.error("Failed to initiate payment. Please try again.");
                                             setLoading(false);
                                         }
                                     } catch (error) {
                                         console.error("Payment initiation failed:", error);
-                                        alert(error.response?.data?.message || "Payment failed to start.");
+                                        toast.error(error.response?.data?.message || "Payment failed to start.");
                                         setLoading(false);
                                     }
                                 }}
