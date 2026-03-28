@@ -1,5 +1,8 @@
 import Clinic from "../../models/clinic.js";
 import AuditLog from "../../models/auditLog.js";
+import jwt from "jsonwebtoken";
+import config from "../../config/config.js";
+import { sendEmail, getClinicApprovalTemplate } from "../common/emailService.js";
 
 /**
  * Manage Clinic Approval Status
@@ -23,6 +26,35 @@ export const updateClinicStatus = async (clinicId, status, adminId) => {
         targetId: clinicId,
         details: `Clinic status changed to ${status} from ${oldStatus}`
     });
+
+    // When admin approves: send email with a secure set-password link
+    if (status === "APPROVED_UNPAID") {
+        try {
+            const token = jwt.sign(
+                { email: clinic.email, clinicId: clinic._id.toString() },
+                config.jwtSecret,
+                { expiresIn: "48h" }
+            );
+
+            const frontendUrl = config.appUrl || "http://localhost:3000";
+            const setPasswordLink = `${frontendUrl}/set-password?token=${token}`;
+
+            const html = getClinicApprovalTemplate({
+                clinicName: clinic.clinicName,
+                ownerName: clinic.ownerName,
+                setPasswordLink,
+            });
+
+            await sendEmail({
+                to: clinic.email,
+                subject: "🎉 Your HealHub Clinic Has Been Approved!",
+                html,
+            });
+        } catch (emailError) {
+            console.error("Failed to send clinic approval email:", emailError);
+            // Don't throw — the approval still succeeded; just log the email failure
+        }
+    }
 
     return clinic;
 };

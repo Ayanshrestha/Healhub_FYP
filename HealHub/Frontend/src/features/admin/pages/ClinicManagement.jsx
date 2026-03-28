@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/AdminLayout";
 import { Building, Plus, Search, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { getSystemData, updateClinicStatus } from "../services/adminAuthService";
+import { toast } from "react-hot-toast";
 
 const ClinicManagement = () => {
     const navigate = useNavigate();
@@ -31,10 +32,10 @@ const ClinicManagement = () => {
     const handleUpdateStatus = async (clinicId, status) => {
         try {
             await updateClinicStatus(clinicId, status);
-            alert(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
+            toast.success(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
             fetchClinics(); // Refresh list
         } catch (err) {
-            alert(err.message || "Failed to update status");
+            toast.error(err.message || "Failed to update status");
         }
     };
 

@@ -16,6 +16,7 @@ import {
     CreditCard
 } from "lucide-react";
 import { getClinicDetailsAPI, updateClinicStatus } from "../services/adminAuthService";
+import { toast } from "react-hot-toast";
 
 const AdminClinicDetails = () => {
     const { clinicId } = useParams();
@@ -45,10 +46,10 @@ const AdminClinicDetails = () => {
         try {
             setActionLoading(true);
             await updateClinicStatus(clinicId, status);
-            alert(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
+            toast.success(`Clinic ${status === "APPROVED_UNPAID" ? "Approved" : "Rejected"} successfully`);
             fetchDetails();
         } catch (err) {
-            alert(err.message || "Action failed");
+            toast.error(err.message || "Action failed");
         } finally {
             setActionLoading(false);
         }
