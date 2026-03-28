@@ -1,0 +1,16 @@
+# Large dataset files
+src/data/medicine_data.csv
+src/data/medicine_dataset.csv
+
+# Dependencies
+node_modules/
+
+# Uploads
+uploads/
+
+# Binary assets and test files
+eng.traineddata
+test-ocr.js
+testEmail.js
+
+.env
