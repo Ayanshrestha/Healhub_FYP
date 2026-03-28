@@ -34,6 +34,7 @@ import providerRoutes from "./routes/provider/providerRoutes.js";
 
 // Payment Domain
 import paymentRoutes from "./routes/payment/paymentRoutes.js";
+import medicineRoutes from "./routes/medicineRoutes.js";
 
 dotenv.config();
 
@@ -41,7 +42,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "http://localhost:3000",
   credentials: true,
 }));
 app.use(express.json());
@@ -85,6 +86,7 @@ app.use("/api/provider", providerRoutes);
 
 // Payment Domain
 app.use("/api/payment", paymentRoutes);
+app.use("/api/medicine", medicineRoutes);
 
 // Health Check
 app.get("/", (req, res) => {

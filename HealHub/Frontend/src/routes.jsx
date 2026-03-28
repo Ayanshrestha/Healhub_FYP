@@ -9,6 +9,7 @@ import TherapistSignup from "./features/auth/TherapistSignup";
 import ClinicSignup from "./features/auth/ClinicSignup";
 import VerifyOtp from "./features/auth/VerifyOtp";
 import SetPassword from "./features/auth/SetPassword";
+import ClinicPendingApproval from "./features/auth/ClinicPendingApproval";
 
 import AdminLogin from "./features/admin/pages/AdminLogin";
 import AdminDashboard from "./features/admin/pages/AdminDashboard";
@@ -47,12 +48,16 @@ import ClinicDiscovery from "./features/patient/pages/ClinicDiscovery";
 import ClinicProfile from "./features/patient/pages/ClinicProfile";
 import BookingFlow from "./features/patient/pages/BookingFlow";
 import MyAppointments from "./features/patient/pages/MyAppointments";
+import PatientAppointmentDetails from "./features/patient/pages/PatientAppointmentDetails";
 import MedicineReminders from "./features/patient/pages/MedicineReminders";
 import PatientMessages from "./features/patient/pages/PatientMessages";
+import PatientConversations from "./features/patient/pages/PatientConversations";
 import PatientReports from "./features/patient/pages/PatientReports";
 import PatientProfile from "./features/patient/pages/PatientProfile";
 import PatientSettings from "./features/patient/pages/PatientSettings";
 import PatientPaymentVerification from "./features/patient/pages/PatientPaymentVerification";
+import PatientCheckout from "./features/patient/pages/PatientCheckout";
+import MedicineScannerPage from "./features/patient/pages/MedicineScannerPage";
 import PatientProtectedRoute from "./features/patient/components/PatientProtectedRoute";
 
 export default function AppRoutes() {
@@ -73,6 +78,7 @@ export default function AppRoutes() {
       {/* OTP flow */}
       <Route path="/verify-otp" element={<VerifyOtp />} />
       <Route path="/set-password" element={<SetPassword />} />
+      <Route path="/clinic-pending" element={<ClinicPendingApproval />} />
       <Route path="/payment-verification" element={<PaymentVerification />} />
 
       {/* Clinic Admin Routes */}
@@ -95,9 +101,13 @@ export default function AppRoutes() {
         <Route path="clinics/:id" element={<ClinicProfile />} />
         <Route path="book/:clinicId" element={<BookingFlow />} />
         <Route path="appointments" element={<MyAppointments />} />
+        <Route path="appointments/:id" element={<PatientAppointmentDetails />} />
         <Route path="medicines" element={<MedicineReminders />} />
+        <Route path="scan-medicine" element={<MedicineScannerPage />} />
+        <Route path="messages" element={<PatientConversations />} />
         <Route path="messages/:appointmentId" element={<PatientMessages />} />
         <Route path="reports" element={<PatientReports />} />
+        <Route path="checkout/:appointmentId" element={<PatientCheckout />} />
         <Route path="profile" element={<PatientProfile />} />
         <Route path="settings" element={<PatientSettings />} />
         <Route path="payment-verification" element={<PatientPaymentVerification />} />
