@@ -25,22 +25,32 @@ export const getDashboardStats = async (clinicId) => {
 
     const clinic = await Clinic.findById(clinicId);
 
+    // Aggregating Clinic's 30% Share with robust fallbacks
+    const completedApps = await Appointment.find({ clinicId, status: "Completed" });
+    const totalEarnings = Number(completedApps.reduce((sum, app) => {
+        const fee = app.consultationFee || 500;
+        return sum + (app.clinicEarning || (fee * 0.30));
+    }, 0).toFixed(2));
+
     return {
         totalDoctors,
         totalPatients,
         todayAppointments,
         monthlyAppointments,
+        totalEarnings, // Added clinic earnings
         subscriptionStatus: clinic.status,
     };
 };
 
 export const getAnalyticsData = async (clinicId) => {
-    // Aggregating appointments per month for the current year
     const year = new Date().getFullYear();
-    const data = await Appointment.aggregate([
+
+    // 1. Monthly Trends (Appointments and Revenue)
+    const monthlyData = await Appointment.aggregate([
         {
             $match: {
                 clinicId: clinicId,
+                status: "Completed",
                 appointmentDate: {
                     $gte: new Date(year, 0, 1),
                     $lte: new Date(year, 11, 31)
@@ -50,17 +60,55 @@ export const getAnalyticsData = async (clinicId) => {
         {
             $group: {
                 _id: { $month: "$appointmentDate" },
-                count: { $sum: 1 }
+                count: { $sum: 1 },
+                revenue: { $sum: "$clinicEarning" }
             }
         },
         { $sort: { "_id": 1 } }
     ]);
 
-    // Format for frontend (index 0-11)
-    const monthlyStats = Array(12).fill(0);
-    data.forEach(item => {
-        monthlyStats[item._id - 1] = item.count;
+    const appointmentStats = Array(12).fill(0);
+    const revenueStats = Array(12).fill(0);
+
+    monthlyData.forEach(item => {
+        appointmentStats[item._id - 1] = item.count;
+        revenueStats[item._id - 1] = Number(item.revenue.toFixed(2));
     });
 
-    return monthlyStats;
+    // 2. Top Performing Doctors (by appointment count)
+    const topDoctors = await Appointment.aggregate([
+        { $match: { clinicId, status: "Completed" } },
+        {
+            $group: {
+                _id: "$providerId",
+                appointmentCount: { $sum: 1 },
+                totalRevenue: { $sum: "$clinicEarning" }
+            }
+        },
+        { $sort: { appointmentCount: -1 } },
+        { $limit: 5 },
+        {
+            $lookup: {
+                from: "doctors",
+                localField: "_id",
+                foreignField: "_id",
+                as: "doctorInfo"
+            }
+        },
+        { $unwind: "$doctorInfo" },
+        {
+            $project: {
+                name: "$doctorInfo.fullName",
+                specialization: "$doctorInfo.specialization",
+                count: "$appointmentCount",
+                revenue: { $round: ["$totalRevenue", 2] }
+            }
+        }
+    ]);
+
+    return {
+        appointments: appointmentStats,
+        revenue: revenueStats,
+        topDoctors
+    };
 };

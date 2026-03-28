@@ -93,36 +93,48 @@ export const RevenueLine = ({ data }) => {
 const AnalyticsCharts = ({ data }) => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    // Formatting for the individual chart components
+    // Use actual data from backend or empty defaults
     const appointmentTrendData = {
         labels: months,
-        values: data || Array(12).fill(0)
+        values: data?.appointments || Array(12).fill(0)
     };
 
     const revenueData = {
         labels: months,
-        values: (data || Array(12).fill(0)).map(val => val * 1000) // Mock multiplier for demo
+        values: data?.revenue || Array(12).fill(0)
     };
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Monthly Bookings</h3>
-                    <span className="px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-[10px] font-black uppercase tracking-widest">Real-time</span>
+            {/* Revenue Stream Chart */}
+            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/80 hover:shadow-md transition-all duration-300">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Revenue Stream</h3>
+                        <p className="text-xs text-gray-400 font-bold mt-0.5 uppercase tracking-wider">Income velocity</p>
+                    </div>
+                    <span className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100/50">
+                        NPR (Rs.)
+                    </span>
                 </div>
-                <div className="h-[250px]">
-                    <AppointmentTrend data={appointmentTrendData} />
+                <div className="h-[280px]">
+                    <RevenueLine data={revenueData} />
                 </div>
             </div>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Revenue Stream</h3>
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">Aggregated</span>
+            {/* Monthly Bookings Chart */}
+            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100/80 hover:shadow-md transition-all duration-300">
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">Monthly Bookings</h3>
+                        <p className="text-xs text-gray-400 font-bold mt-0.5 uppercase tracking-wider">Volume analysis</p>
+                    </div>
+                    <span className="px-4 py-1.5 bg-teal-50 text-teal-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-teal-100/50">
+                        Live Data
+                    </span>
                 </div>
-                <div className="h-[250px]">
-                    <RevenueLine data={revenueData} />
+                <div className="h-[280px]">
+                    <AppointmentTrend data={appointmentTrendData} />
                 </div>
             </div>
         </div>

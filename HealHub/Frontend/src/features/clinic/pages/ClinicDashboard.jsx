@@ -11,7 +11,8 @@ import {
     Activity,
     Plus,
     ArrowRight,
-    ShieldCheck
+    ShieldCheck,
+    DollarSign
 } from "lucide-react";
 
 const ClinicDashboard = () => {
@@ -52,8 +53,8 @@ const ClinicDashboard = () => {
     const stats = [
         { title: "Active Doctors", value: dashboardData?.totalDoctors || "0", subtitle: "Affiliated Staff", icon: Users, colorClass: "bg-teal-100 text-teal-600", delay: "0ms" },
         { title: "Today's Appointments", value: dashboardData?.todayAppointments || "0", subtitle: "Scheduled today", icon: Calendar, colorClass: "bg-emerald-100 text-emerald-600", delay: "100ms" },
-        { title: "Total Patients", value: dashboardData?.totalPatients || "0", subtitle: "Registered visits", icon: Activity, colorClass: "bg-teal-100 text-teal-600", delay: "200ms" },
-        { title: "Clinic Status", value: dashboardData?.subscriptionStatus || "ACTIVE", subtitle: "Subscription Status", icon: ShieldCheck, colorClass: "bg-emerald-100 text-emerald-600", delay: "300ms" },
+        { title: "Total Earning", value: `Rs. ${dashboardData?.totalEarnings?.toLocaleString() || "0"}`, subtitle: "Consultation Revenue", icon: DollarSign, colorClass: "bg-blue-100 text-blue-600", delay: "200ms" },
+        { title: "Total Patients", value: dashboardData?.totalPatients || "0", subtitle: "Lifetime visits", icon: ShieldCheck, colorClass: "bg-purple-100 text-purple-600", delay: "300ms" },
     ];
 
     const activities = [
