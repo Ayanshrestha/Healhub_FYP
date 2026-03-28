@@ -2,6 +2,7 @@ import cron from "node-cron";
 import MedicineReminder from "../models/medicineReminder.js";
 import Patient from "../models/patient.js";
 import { createNotification } from "../services/common/notificationService.js";
+import { sendEmail, getMedicineReminderTemplate } from "../services/common/emailService.js";
 
 /**
  * Medicine Reminder Background Worker
@@ -69,6 +70,27 @@ export const initMedicineReminderWorker = () => {
                         medicineName: reminder.medicineName
                     }
                 });
+
+                // --- NEW: Email Reminder ---
+                if (patient.email) {
+                    try {
+                        const emailHtml = getMedicineReminderTemplate({
+                            patientName: patient.fullName,
+                            medicineName: reminder.medicineName,
+                            dosage: reminder.dosage,
+                            cleanTime
+                        });
+
+                        await sendEmail({
+                            to: patient.email,
+                            subject: `Medicine Reminder: ${reminder.medicineName} 💊`,
+                            html: emailHtml
+                        });
+                        console.log(`📧 [MedicineWorker] Email sent to: ${patient.email}`);
+                    } catch (emailErr) {
+                        console.error(`❌ [MedicineWorker] Email failed for ${patient.email}:`, emailErr);
+                    }
+                }
 
                 console.log(`✅ [MedicineWorker] Success: ${reminder.medicineName} notification sent.`);
             }
