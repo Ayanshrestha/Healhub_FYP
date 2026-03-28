@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["APPOINTMENT", "MESSAGE", "REMINDER", "SYSTEM", "MEDICINE", "CLINIC"],
+            enum: ["APPOINTMENT", "MESSAGE", "REMINDER", "SYSTEM", "MEDICINE", "CLINIC", "PAYMENT", "CLINICAL"],
             required: true,
         },
         priority: {
