@@ -14,6 +14,8 @@ import {
     CreditCard
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+import Navbar from "../../../components/layout/Navbar";
 import patientService from "../services/patientService";
 
 const MyAppointments = () => {
@@ -50,8 +52,9 @@ const MyAppointments = () => {
             try {
                 await patientService.cancelAppointment(id);
                 fetchAppointments(); // Refresh
+                toast.success("Appointment cancelled successfully");
             } catch (error) {
-                alert("Cancellation failed.");
+                toast.error("Cancellation failed.");
             }
         }
     };
