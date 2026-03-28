@@ -1,7 +1,27 @@
 import React, { useState, useEffect } from "react";
 import ClinicLayout from "../../../layouts/ClinicLayout";
 import clinicService from "../services/clinicService";
-import { Loader2, Lock, Bell, Shield, ChevronRight, Check } from "lucide-react";
+import { Loader2, Lock, Bell, Shield, ChevronRight, Check, MapPin } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+
+// Fix for default marker icon in Leaflet + React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+const MapPicker = ({ location, setLocation }) => {
+    useMapEvents({
+        click(e) {
+            setLocation(e.latlng);
+        },
+    });
+
+    return location ? <Marker position={location} /> : null;
+};
 
 const SettingsPage = () => {
     const [preferences, setPreferences] = useState({
@@ -10,6 +30,7 @@ const SettingsPage = () => {
         subscriptionExpiry: true,
         adminMessages: true
     });
+    const [location, setLocation] = useState(null);
     const [passwords, setPasswords] = useState({
         currentPassword: "",
         newPassword: "",
@@ -27,6 +48,9 @@ const SettingsPage = () => {
                 if (data.notificationPreferences) {
                     setPreferences(data.notificationPreferences);
                 }
+                if (data.location) {
+                    setLocation(data.location);
+                }
             } catch (error) {
                 console.error("Error fetching settings:", error);
             } finally {
@@ -43,6 +67,20 @@ const SettingsPage = () => {
             await clinicService.updatePreferences(updated);
         } catch (error) {
             console.error("Failed to sync preferences:", error);
+        }
+    };
+
+    const handleLocationSave = async () => {
+        if (!location) return;
+        setSaving(true);
+        setMessage({ type: "", text: "" });
+        try {
+            await clinicService.updateProfile({ location });
+            setMessage({ type: "success", text: "Clinic coordinates synchronized successfully." });
+        } catch (error) {
+            setMessage({ type: "error", text: "Failed to update location." });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -146,6 +184,57 @@ const SettingsPage = () => {
                                     {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Update Security Credentials"}
                                 </button>
                             </form>
+                        </section>
+
+                        {/* Map Location Section */}
+                        <section className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+                            <h3 className="text-2xl font-black text-gray-900 mb-8 flex items-center space-x-4">
+                                <div className="p-3 bg-teal-50 rounded-2xl text-teal-600">
+                                    <MapPin className="w-6 h-6" />
+                                </div>
+                                <span>Clinic Coordinates</span>
+                            </h3>
+
+                            <div className="space-y-6">
+                                <p className="text-gray-500 font-bold text-sm leading-relaxed">
+                                    Drop a pin on the map to set your precise location. This will help patients find your facility using GPS navigation.
+                                </p>
+
+                                <div className="h-80 w-full rounded-2xl overflow-hidden border-2 border-gray-100 relative z-0">
+                                    <MapContainer
+                                        center={location || [27.7172, 85.3240]}
+                                        zoom={13}
+                                        style={{ height: "100%", width: "100%" }}
+                                    >
+                                        <TileLayer
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                        />
+                                        <MapPicker location={location} setLocation={setLocation} />
+                                    </MapContainer>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                            <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Selected Coordinates</p>
+                                            <p className="text-sm font-black text-gray-800">
+                                                {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "No location pinned"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLocationSave}
+                                        disabled={saving || !location}
+                                        className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-black text-xs hover:bg-teal-700 transition shadow-lg shadow-teal-100 disabled:opacity-50"
+                                    >
+                                        {saving ? "Syncing..." : "Update Location"}
+                                    </button>
+                                </div>
+                            </div>
                         </section>
                     </div>
 

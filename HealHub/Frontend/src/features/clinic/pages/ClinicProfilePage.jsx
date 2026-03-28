@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ClinicLayout from "../../../layouts/ClinicLayout";
 import clinicService from "../services/clinicService";
-import { Loader2, Save, User, Building, MapPin, Phone, Mail, Shield, Clock, Plus, X, Globe, FileText, Download } from "lucide-react";
+import { Loader2, Save, User, Building, MapPin, Phone, Mail, Shield, Clock, Plus, X, Globe, FileText, Download, Camera, Image as ImageIcon } from "lucide-react";
+import { BASE_URL } from "../../../services/api";
 
 const ClinicProfilePage = () => {
     const [profile, setProfile] = useState({
@@ -15,12 +16,15 @@ const ClinicProfilePage = () => {
         operatingHours: {},
         facilities: [],
         status: "",
-        documents: []
+        documents: [],
+        clinicImage: "",
+        clinicLogo: ""
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: "", text: "" });
     const [newFacility, setNewFacility] = useState("");
+    const [imageErrors, setImageErrors] = useState({ logo: false, hero: false });
 
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -113,6 +117,30 @@ const ClinicProfilePage = () => {
             setMessage({ type: "success", text: "Operational profile updated successfully!" });
         } catch (error) {
             setMessage({ type: "error", text: "Integration sync failed. Please check your data." });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleImageUpload = async (e, type) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append(type, file);
+
+        try {
+            setSaving(true);
+            const response = await clinicService.uploadClinicImages(formData);
+            setProfile(prev => ({
+                ...prev,
+                clinicImage: response.clinic.clinicImage,
+                clinicLogo: response.clinic.clinicLogo
+            }));
+            setMessage({ type: "success", text: `${type === 'clinicImage' ? 'Hero image' : 'Logo'} updated successfully!` });
+        } catch (error) {
+            console.error("Upload error:", error);
+            setMessage({ type: "error", text: "Failed to upload image. Please try again." });
         } finally {
             setSaving(false);
         }
@@ -230,6 +258,68 @@ const ClinicProfilePage = () => {
                                         placeholder="Tell patients about your clinic, specializations, and history..."
                                         className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-50 rounded-[24px] text-sm font-bold text-gray-800 focus:border-teal-500 focus:bg-white transition-all outline-none shadow-sm resize-none"
                                     />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Visual Identity */}
+                        <section className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+                            <h3 className="text-2xl font-black text-gray-900 mb-8 flex items-center space-x-4">
+                                <div className="p-3 bg-purple-50 rounded-2xl text-purple-600">
+                                    <Camera className="w-6 h-6" />
+                                </div>
+                                <span>Visual Identity</span>
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                {/* Clinic Logo */}
+                                <div className="space-y-4">
+                                    <label className="text-xs font-black text-gray-700 uppercase tracking-[0.2em] ml-1">Clinic Logo</label>
+                                    <div className="relative group">
+                                        <div className="w-32 h-32 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+                                            {profile.clinicLogo && !imageErrors.logo ? (
+                                                <img
+                                                    src={profile.clinicLogo.startsWith('http') ? profile.clinicLogo : `${BASE_URL}${profile.clinicLogo}`}
+                                                    alt="Logo"
+                                                    className="w-full h-full object-cover"
+                                                    onError={() => setImageErrors(prev => ({ ...prev, logo: true }))}
+                                                />
+                                            ) : null}
+                                            {(imageErrors.logo || !profile.clinicLogo) && (
+                                                <Building className="w-10 h-10 text-gray-300" />
+                                            )}
+                                        </div>
+                                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-3xl">
+                                            <Camera className="w-8 h-8 text-white" />
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "clinicLogo")} />
+                                        </label>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Square aspect ratio recommended (PNG/JPG)</p>
+                                </div>
+
+                                {/* Hero Banner */}
+                                <div className="space-y-4">
+                                    <label className="text-xs font-black text-gray-700 uppercase tracking-[0.2em] ml-1">Hero Banner Image</label>
+                                    <div className="relative group">
+                                        <div className="aspect-video w-full rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+                                            {profile.clinicImage && !imageErrors.hero ? (
+                                                <img
+                                                    src={profile.clinicImage.startsWith('http') ? profile.clinicImage : `${BASE_URL}${profile.clinicImage}`}
+                                                    alt="Hero"
+                                                    className="w-full h-full object-cover"
+                                                    onError={() => setImageErrors(prev => ({ ...prev, hero: true }))}
+                                                />
+                                            ) : null}
+                                            {(imageErrors.hero || !profile.clinicImage) && (
+                                                <ImageIcon className="w-10 h-10 text-gray-300" />
+                                            )}
+                                        </div>
+                                        <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-3xl">
+                                            <Camera className="w-8 h-8 text-white" />
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, "clinicImage")} />
+                                        </label>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Wide aspect ratio (16:9) recommended</p>
                                 </div>
                             </div>
                         </section>

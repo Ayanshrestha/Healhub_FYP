@@ -23,7 +23,10 @@ export const getProfileByUserId = async (userId, email) => {
 
 export const updateClinicProfile = async (clinicId, updateData) => {
     // Whitelist updateable fields
-    const { phone, address, ownerName, description, operatingHours, facilities, specializations } = updateData;
+    const {
+        phone, address, ownerName, description, operatingHours, facilities, specializations,
+        clinicImage, clinicLogo, location
+    } = updateData;
     const cleanData = {};
     if (phone) cleanData.phone = phone;
     if (address) cleanData.address = address;
@@ -32,6 +35,9 @@ export const updateClinicProfile = async (clinicId, updateData) => {
     if (operatingHours) cleanData.operatingHours = operatingHours;
     if (facilities) cleanData.facilities = facilities;
     if (specializations) cleanData.specializations = specializations;
+    if (clinicImage !== undefined) cleanData.clinicImage = clinicImage;
+    if (clinicLogo !== undefined) cleanData.clinicLogo = clinicLogo;
+    if (location) cleanData.location = location;
 
     return await Clinic.findByIdAndUpdate(clinicId, cleanData, { new: true });
 };
