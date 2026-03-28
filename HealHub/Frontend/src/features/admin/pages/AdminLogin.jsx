@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { HeartPulse, Mail, Lock, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { adminLoginAPI } from "../services/adminAuthService";
+import { clearSession } from "../../../services/api";
 
 const AdminLogin = () => {
     const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ const AdminLogin = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        clearSession();
         setError("");
         setLoading(true);
 

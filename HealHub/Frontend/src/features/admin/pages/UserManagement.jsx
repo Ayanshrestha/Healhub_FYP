@@ -5,6 +5,7 @@ import { Users, UserPlus, Shield, Search } from "lucide-react";
 
 import { getSystemData, toggleUserStatus } from "../services/adminAuthService";
 import { Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const UserManagement = () => {
     const navigate = useNavigate();
@@ -33,8 +34,9 @@ const UserManagement = () => {
             // Refresh list
             const data = await getSystemData("users");
             setUsers(data.users || []);
+            toast.success("User status updated successfully");
         } catch (err) {
-            alert(err.message || "Failed to update user status");
+            toast.error(err.message || "Failed to update user status");
         }
     };
 

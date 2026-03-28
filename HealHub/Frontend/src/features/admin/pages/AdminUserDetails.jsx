@@ -18,6 +18,7 @@ import {
     CreditCard
 } from "lucide-react";
 import { getUserDetailsAPI, toggleUserStatus, verifyDoctorAPI } from "../services/adminAuthService";
+import { toast } from "react-hot-toast";
 
 const AdminUserDetails = () => {
     const { userId } = useParams();
@@ -50,8 +51,9 @@ const AdminUserDetails = () => {
         try {
             await toggleUserStatus(userId);
             await fetchUserDetails(); // Refresh data
+            toast.success("User status updated successfully");
         } catch (err) {
-            alert(err.message || "Operation failed");
+            toast.error(err.message || "Operation failed");
         } finally {
             setUpdating(false);
         }
@@ -64,9 +66,9 @@ const AdminUserDetails = () => {
         try {
             await verifyDoctorAPI(userId);
             await fetchUserDetails(); // Refresh data
-            alert("Doctor verified successfully!");
+            toast.success("Doctor verified successfully!");
         } catch (err) {
-            alert(err.message || "Operation failed");
+            toast.error(err.message || "Operation failed");
         } finally {
             setUpdating(false);
         }

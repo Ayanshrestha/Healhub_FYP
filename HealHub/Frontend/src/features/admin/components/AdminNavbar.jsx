@@ -7,6 +7,7 @@ import NotificationDropdown from "../../patient/components/NotificationDropdown"
 
 const AdminNavbar = () => {
     const navigate = useNavigate();
+    const user = JSON.parse(localStorage.getItem("adminUser") || localStorage.getItem("user") || "{}");
 
     const handleLogout = () => {
         logoutAdmin();
@@ -57,12 +58,16 @@ const AdminNavbar = () => {
 
                         <div className="flex items-center space-x-3 border-l pl-4 border-gray-100">
                             <div className="flex items-center space-x-3 cursor-pointer p-1.5 rounded-xl hover:bg-gray-50 transition-all group">
-                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:shadow-md transition-all">
-                                    SA
+                                <div className="text-right hidden lg:block">
+                                    <p className="text-xs font-bold text-gray-900 leading-none group-hover:text-teal-600 transition-colors uppercase tracking-tight">{user.fullName || "System Admin"}</p>
+                                    <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-0.5">Root Access</p>
                                 </div>
-                                <div className="hidden lg:block text-left">
-                                    <p className="text-sm font-bold text-gray-900 leading-tight">System Admin</p>
-                                    <p className="text-[10px] text-teal-600 font-bold uppercase tracking-wider">Root Access</p>
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white">
+                                    {user.profilePhoto ? (
+                                        <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                                    ) : (
+                                        (user.fullName?.charAt(0) || "A").toUpperCase()
+                                    )}
                                 </div>
                             </div>
 
