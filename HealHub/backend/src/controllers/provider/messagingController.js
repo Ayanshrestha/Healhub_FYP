@@ -13,6 +13,7 @@ export const sendMessage = async (req, res) => {
             content: req.body.content,
             type: req.body.type,
             attachments: req.body.attachments,
+            tempId: req.body.tempId, // Ensure tempId is passed for frontend optimistic update matching
             providerId: provider._id,
             providerType: req.user.role === "doctor" ? "Doctor" : "Therapist",
             sender: "PROVIDER"

@@ -75,7 +75,7 @@ export const sendMessage = async (userId, appointmentId, messageData) => {
             // Standard notification
             await createNotification({
                 recipientId: clinic.userId,
-                type: "CLINICAL_MESSAGE",
+                type: "CLINICAL",
                 title: "New Clinical Inquiry",
                 message: `Patient ${patient.fullName} sent a message regarding appointment ${appointmentId}`,
                 data: { appointmentId, messageId: message._id }

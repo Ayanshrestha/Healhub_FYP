@@ -14,6 +14,7 @@ import {
     Loader2,
     MessageSquare
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import * as providerService from "../services/providerService";
 import { SOCKET_URL } from "../../../services/api";
 
@@ -175,7 +176,7 @@ const ProviderMessages = () => {
         } catch (err) {
             console.error("Send message error:", err);
             setMessages(prev => prev.filter(m => m._id !== tempId));
-            alert("Failed to send message");
+            toast.error("Failed to send message");
         }
     };
 
