@@ -3,6 +3,7 @@ import * as clinicAuthController from "../../controllers/clinic/clinicAuthContro
 
 const router = express.Router();
 
-router.post("/register", clinicAuthController.register);
+// Called by frontend after OTP verification to create pending clinic & notify admin
+router.post("/register-from-otp", clinicAuthController.registerFromOtp);
 
 export default router;
