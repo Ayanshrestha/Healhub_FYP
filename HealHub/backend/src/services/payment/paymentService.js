@@ -8,7 +8,8 @@ import Doctor from "../../models/doctor.js";
 import Patient from "../../models/patient.js";
 import { SUBSCRIPTION_PLANS } from "../../constants/pricing.js";
 import { createNotification } from "../common/notificationService.js";
-import { sendEmail, getAppointmentConfirmationTemplate, getProviderBookingNotificationTemplate } from "../common/emailService.js";
+import { sendEmail, getPaymentReceiptTemplate, getProviderBookingNotificationTemplate } from "../common/emailService.js";
+import User from "../../models/user.js";
 
 /**
  * Initiate Khalti Payment
@@ -30,8 +31,8 @@ export const initiatePayment = async (clinicId, planName) => {
     }
 
     const payload = {
-        return_url: config.khalti.returnUrl || "http://localhost:5173/payment-verification",
-        website_url: "http://localhost:5173",
+        return_url: config.khalti.returnUrl || "http://localhost:3000/payment-verification",
+        website_url: "http://localhost:3000",
         amount: plan.amount * 100, // Khalti expects amount in paisa
         purchase_order_id: `${clinic._id}_${Date.now()}`,
         purchase_order_name: `${plan.name} Subscription`,
@@ -93,8 +94,8 @@ export const initiateAppointmentPayment = async (appointmentId) => {
     const amount = doctor.consultationFee || 500;
 
     const payload = {
-        return_url: "http://localhost:5173/patient/payment-verification",
-        website_url: "http://localhost:5173",
+        return_url: "http://localhost:3000/patient/payment-verification",
+        website_url: "http://localhost:3000",
         amount: amount * 100, // paisa
         purchase_order_id: `APP_${appointment._id}_${Date.now()}`,
         purchase_order_name: `Consultation with Dr. ${doctor.fullName}`,
@@ -181,14 +182,14 @@ export const verifyPayment = async (pidx) => {
 
             // Notify Admin of Payment
             try {
-                const admin = await User.findOne({ role: "admin" }); // Re-fetch admin to be safe
+                const admin = await User.findOne({ role: "admin" });
                 if (admin) {
                     await createNotification({
                         recipientId: admin._id,
                         recipientModel: "User",
                         type: "PAYMENT",
                         title: "Subscription Renewed 💰",
-                        message: `${clinic.name} has successfully subscribed to the ${plan.name} plan.`,
+                        message: `${clinic.clinicName} has successfully subscribed to the ${plan.name} plan.`,
                         priority: "medium",
                         link: `/admin/clinics/${clinic._id}`,
                         data: { clinicId: clinic._id, paymentId: payment._id }
@@ -203,8 +204,13 @@ export const verifyPayment = async (pidx) => {
             const appointment = await Appointment.findById(payment.appointmentId);
             if (!appointment) throw new Error("Appointment not found");
 
-            // appointment.status = "Approved"; // Option B: Manual Approval required even after payment
             appointment.paymentStatus = "Paid";
+
+            // --- NEW: Calculate Revenue Split (30% Clinic / 70% Provider) ---
+            const fee = appointment.consultationFee || 0;
+            appointment.clinicEarning = Number((fee * 0.30).toFixed(2));
+            appointment.doctorEarning = Number((fee * 0.70).toFixed(2));
+
             await appointment.save();
 
             // Populate everything for the email
@@ -215,24 +221,20 @@ export const verifyPayment = async (pidx) => {
 
             const patient = populatedAppt.patientId;
             const doctor = populatedAppt.providerId;
-            const clinic = populatedAppt.clinicId;
 
-            // --- HOSPITAL GRADE EMAIL NOTIFICATIONS ---
+            // --- HOSPITAL GRADE APPOINTMENT CONFIRMATION ---
             if (patient && patient.email) {
                 try {
-                    const dateStr = populatedAppt.appointmentDate.toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-
-                    // 1. Send Confirmation to Patient
-                    const patientEmailHtml = getAppointmentConfirmationTemplate({
+                    const confirmationHtml = getAppointmentConfirmationTemplate({
                         patientName: patient.fullName,
-                        doctorName: doctor ? doctor.fullName : "Specialist",
-                        clinicName: clinic ? clinic.clinicName : "HealHub Clinic",
-                        date: dateStr,
+                        doctorName: doctor ? doctor.fullName : 'Specialist',
+                        clinicName: populatedAppt.clinicId?.clinicName || "HealHub Clinic",
+                        date: new Date(populatedAppt.appointmentDate).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        }),
                         timeSlot: populatedAppt.timeSlot,
                         bookingRef: populatedAppt._id.toString().slice(-6).toUpperCase(),
                         amount: payment.amount
@@ -240,45 +242,28 @@ export const verifyPayment = async (pidx) => {
 
                     await sendEmail({
                         to: patient.email,
-                        subject: `Appointment Confirmed: #${populatedAppt._id.toString().slice(-6).toUpperCase()} ✅`,
-                        html: patientEmailHtml
+                        subject: `Appointment Fully Confirmed: Dr. ${doctor?.fullName} ✅`,
+                        html: confirmationHtml
                     });
 
-                    // 2. Send Notification to Doctor/Clinic (Optional but requested)
-                    if (clinic && clinic.email) {
-                        const providerEmailHtml = getProviderBookingNotificationTemplate({
-                            providerName: doctor ? doctor.fullName : "Specialist",
-                            patientName: patient.fullName,
-                            clinicName: clinic.clinicName,
-                            date: dateStr,
-                            timeSlot: populatedAppt.timeSlot,
-                            bookingRef: populatedAppt._id.toString().slice(-6).toUpperCase()
-                        });
+                    console.log(`📧 Final confirmation email sent to ${patient.email}`);
 
-                        await sendEmail({
-                            to: clinic.email,
-                            subject: `New Appointment Booking: #${populatedAppt._id.toString().slice(-6).toUpperCase()} 📅`,
-                            html: providerEmailHtml
-                        });
-                    }
-
-                    // Update flag
-                    appointment.confirmationEmailSent = true;
-                    await appointment.save();
-
+                    // Mark confirmed in DB to prevent double receipts/confirmations if needed
+                    populatedAppt.confirmationEmailSent = true;
+                    await populatedAppt.save();
                 } catch (emailErr) {
-                    console.error("❌ Failed to send appointment confirmation email:", emailErr);
+                    console.error("❌ Failed to send final confirmation email:", emailErr);
                 }
             }
 
             // Notify patient via In-App Notification
             const PatientUser = await Patient.findById(appointment.patientId).populate("userId");
-            if (PatientUser) {
+            if (PatientUser && PatientUser.userId) {
                 await createNotification({
                     recipientId: PatientUser.userId._id,
                     type: "APPOINTMENT",
-                    title: "Payment Successful 💰",
-                    message: `Your payment was verified. Your appointment with Dr. ${doctor?.fullName || 'the specialist'} is now awaiting doctor's final approval.`,
+                    title: "Booking Fully Confirmed ✅",
+                    message: `Your payment was verified. Your appointment with Dr. ${doctor?.fullName || 'the specialist'} is now fully confirmed.`,
                     data: { appointmentId: appointment._id }
                 });
             }
