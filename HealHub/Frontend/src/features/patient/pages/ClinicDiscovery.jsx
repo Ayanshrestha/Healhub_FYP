@@ -2,6 +2,65 @@ import { useState, useEffect } from "react";
 import { Search, MapPin, Star, Users, ChevronRight, Filter, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import patientService from "../services/patientService";
+import { BASE_URL } from "../../../services/api";
+
+const ClinicCard = ({ clinic, navigate }) => {
+    const [imageError, setImageError] = useState(false);
+
+    return (
+        <div
+            onClick={() => navigate(`/patient/clinics/${clinic._id}`)}
+            className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col h-full"
+        >
+            <div className="h-40 bg-gray-100 relative">
+                {clinic.clinicImage && !imageError ? (
+                    <img
+                        src={`${BASE_URL}${clinic.clinicImage}`}
+                        alt={clinic.clinicName}
+                        className="w-full h-full object-cover"
+                        onError={() => setImageError(true)}
+                    />
+                ) : null}
+                {(imageError || !clinic.clinicImage) && (
+                    <div className="w-full h-full flex items-center justify-center bg-teal-50">
+                        <ShieldCheck className="w-12 h-12 text-teal-200" />
+                    </div>
+                )}
+                <div className="absolute top-4 right-4">
+                    <span className="px-2 py-1 bg-white/90 rounded-lg text-[9px] font-bold text-teal-600 uppercase tracking-wider">
+                        Verified
+                    </span>
+                </div>
+            </div>
+
+            <div className="p-5 flex-1 flex flex-col">
+                <h3 className="text-lg font-bold text-gray-800 line-clamp-1">{clinic.clinicName}</h3>
+                <div className="flex items-center text-gray-400 text-xs mt-1">
+                    <MapPin className="w-3 h-3 mr-1 text-teal-500" />
+                    <span className="line-clamp-1">{clinic.address}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 my-4">
+                    <div className="bg-gray-50 p-2 rounded-lg text-center">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase">Doctors</p>
+                        <span className="text-sm font-bold text-gray-700">{clinic.totalDoctors || 0}</span>
+                    </div>
+                    <div className="bg-gray-50 p-2 rounded-lg text-center">
+                        <p className="text-[9px] font-bold text-gray-400 uppercase">Rating</p>
+                        <span className="text-sm font-bold text-gray-700">4.8</span>
+                    </div>
+                </div>
+
+                <div className="mt-auto">
+                    <button className="w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-teal-600 transition-all flex items-center justify-center">
+                        <span>View Profile</span>
+                        <ChevronRight className="w-3 h-3 ml-1" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ClinicDiscovery = () => {
     const navigate = useNavigate();
@@ -61,50 +120,7 @@ const ClinicDiscovery = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredClinics.map((clinic) => (
-                    <div
-                        key={clinic._id}
-                        onClick={() => navigate(`/patient/clinics/${clinic._id}`)}
-                        className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col"
-                    >
-                        <div className="h-40 bg-gray-100 relative">
-                            {clinic.images?.[0] ? (
-                                <img src={clinic.images[0]} alt={clinic.clinicName} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-teal-50">
-                                    <ShieldCheck className="w-12 h-12 text-teal-200" />
-                                </div>
-                            )}
-                            <div className="absolute top-4 right-4">
-                                <span className="px-2 py-1 bg-white/90 rounded-lg text-[9px] font-bold text-teal-600 uppercase tracking-wider">
-                                    Verified
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="p-5 flex-1 flex flex-col">
-                            <h3 className="text-lg font-bold text-gray-800 line-clamp-1">{clinic.clinicName}</h3>
-                            <div className="flex items-center text-gray-400 text-xs mt-1">
-                                <MapPin className="w-3 h-3 mr-1 text-teal-500" />
-                                <span className="line-clamp-1">{clinic.address}</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 my-4">
-                                <div className="bg-gray-50 p-2 rounded-lg text-center">
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase">Doctors</p>
-                                    <span className="text-sm font-bold text-gray-700">{clinic.totalDoctors || 0}</span>
-                                </div>
-                                <div className="bg-gray-50 p-2 rounded-lg text-center">
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase">Rating</p>
-                                    <span className="text-sm font-bold text-gray-700">4.8</span>
-                                </div>
-                            </div>
-
-                            <button className="w-full py-2.5 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-teal-600 transition-all flex items-center justify-center">
-                                <span>View Profile</span>
-                                <ChevronRight className="w-3 h-3 ml-1" />
-                            </button>
-                        </div>
-                    </div>
+                    <ClinicCard key={clinic._id} clinic={clinic} navigate={navigate} />
                 ))}
             </div>
 

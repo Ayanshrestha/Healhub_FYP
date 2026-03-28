@@ -11,7 +11,7 @@ export const listVerifiedClinics = async () => {
     const clinics = await Clinic.find({
         status: { $in: ["ACTIVE", "APPROVED_UNPAID", "PENDING_APPROVAL"] }
     })
-        .select("clinicName address status specializations description")
+        .select("clinicName address status specializations description clinicImage clinicLogo")
         .lean();
 
     const clinicsWithStats = await Promise.all(clinics.map(async (clinic) => {
@@ -48,7 +48,10 @@ export const listVerifiedClinics = async () => {
  * Get detailed clinic profile with doctor counts per department
  */
 export const getClinicProfileDetails = async (clinicId) => {
-    const clinic = await Clinic.findById(clinicId).lean();
+    const clinic = await Clinic.findById(clinicId)
+        .select("clinicName address status specializations description operatingHours facilities subscriptionPlan email phone clinicImage clinicLogo")
+        .lean();
+
     if (!clinic) {
         const error = new Error("Clinic not found");
         error.statusCode = 404;
@@ -60,7 +63,10 @@ export const getClinicProfileDetails = async (clinicId) => {
         clinicId: clinic._id,
         status: "ACTIVE",
         providerType: "Doctor"
-    }).populate("providerId");
+    }).populate({
+        path: "providerId",
+        select: "fullName specialization profilePhoto qualification experienceYears consultationFee bio status"
+    });
 
     // Filter by active doctors and group by specialization
     const activeDoctors = activeAffiliations
@@ -84,10 +90,23 @@ export const getClinicProfileDetails = async (clinicId) => {
         doctorCount: doctorCountPerDept[spec] || 0
     }));
 
+    // Get Top 4 Specialists for the highlight section
+    const topSpecialists = activeDoctors
+        .slice(0, 4)
+        .map(doc => ({
+            _id: doc._id,
+            fullName: doc.fullName,
+            specialization: doc.specialization,
+            profilePhoto: doc.profilePhoto,
+            qualification: doc.qualification,
+            experience: doc.experienceYears
+        }));
+
     return {
         ...clinic,
         departments,
-        totalDoctors: activeDoctors.length
+        totalDoctors: activeDoctors.length,
+        topSpecialists
     };
 };
 
