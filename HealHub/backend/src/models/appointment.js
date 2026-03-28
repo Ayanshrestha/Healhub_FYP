@@ -48,11 +48,28 @@ const appointmentSchema = new mongoose.Schema(
             enum: ["Pending", "Paid", "Refunded"],
             default: "Pending",
         },
+        paymentOption: {
+            type: String,
+            enum: ["Online", "Clinic"],
+            default: "Clinic",
+        },
         reason: {
             type: String,
         },
         notes: {
             type: String,
+        },
+        consultationFee: {
+            type: Number,
+            default: 0,
+        },
+        clinicEarning: {
+            type: Number,
+            default: 0,
+        },
+        doctorEarning: {
+            type: Number,
+            default: 0,
         },
         reminderSent: {
             type: Boolean,
@@ -67,6 +84,10 @@ const appointmentSchema = new mongoose.Schema(
             default: false,
         },
         reminder1hSent: {
+            type: Boolean,
+            default: false,
+        },
+        rejectionEmailSent: {
             type: Boolean,
             default: false,
         },

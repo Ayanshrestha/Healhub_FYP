@@ -89,3 +89,29 @@ export const cancel = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+export const reinitiatePayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const paymentData = await appointmentService.reinitiateAppointmentPayment(req.user._id, id);
+        res.status(200).json({
+            success: true,
+            data: paymentData
+        });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const switchToClinic = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const appointment = await appointmentService.switchToClinicPayment(req.user._id, id);
+        res.status(200).json({
+            success: true,
+            message: "Switched to clinic payment successfully",
+            data: appointment
+        });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};

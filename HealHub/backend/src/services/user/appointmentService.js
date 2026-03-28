@@ -156,6 +156,7 @@ export const createAppointment = async (userId, bookingData) => {
         status: "Pending",
         appointmentType: visitType || "CLINIC_VISIT",
         reason,
+        consultationFee: doctor.consultationFee || 0, // Capture fee at booking time
         paymentStatus: "Pending", // Initial status
         paymentOption: paymentOption || "Clinic"
     });

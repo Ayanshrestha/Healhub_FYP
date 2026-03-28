@@ -17,5 +17,7 @@ router.get("/upcoming", appointmentController.listUpcoming);
 router.get("/past", appointmentController.listPast);
 router.get("/:id", appointmentController.getDetails);
 router.patch("/:id/cancel", appointmentController.cancel);
+router.post("/:id/reinitiate-payment", appointmentController.reinitiatePayment);
+router.patch("/:id/switch-to-clinic", appointmentController.switchToClinic);
 
 export default router;
