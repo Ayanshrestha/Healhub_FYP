@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import User from "../../models/user.js";
 import TempRegister from "../../models/tempRegister.js";
 import Patient from "../../models/patient.js";
@@ -6,6 +7,7 @@ import Doctor from "../../models/doctor.js";
 import Therapist from "../../models/therapist.js";
 import Clinic from "../../models/clinic.js";
 import * as otpService from "./otpService.js";
+import { createNotification } from "../common/notificationService.js";
 
 /**
  * Start Registration (OTP Step)
@@ -58,16 +60,81 @@ export const startRegistration = async (input) => {
 
 /**
  * Complete Registration (Password Step)
+ * - For clinics: uses a JWT token from the approval email link
+ * - For all other roles: uses email + OTP-verified TempRegister as before
  */
 export const completeRegistration = async (input) => {
-    const email = input.email?.toLowerCase().trim();
-    const { password, confirmPassword } = input;
+    const { password, confirmPassword, token } = input;
 
     if (password !== confirmPassword) {
         const error = new Error("Password and Confirm Password do not match");
         error.statusCode = 400;
         throw error;
     }
+
+    // ── CLINIC FLOW (token-based) ──────────────────────────────────────────
+    if (token) {
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (err) {
+            const error = new Error("Invalid or expired approval link. Please contact admin.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const email = decoded.email?.toLowerCase().trim();
+        const clinicId = decoded.clinicId;
+
+        // Make sure a User doesn't already exist for this email
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            const error = new Error("Account already created. Please login.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const clinic = await Clinic.findById(clinicId);
+        if (!clinic) {
+            const error = new Error("Clinic record not found.");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (clinic.status !== "APPROVED_UNPAID") {
+            const error = new Error("Clinic is not in an approved state.");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        let user = null;
+        try {
+            user = await User.create({
+                email,
+                password: hashedPassword,
+                role: "clinic",
+                isVerified: true,
+            });
+
+            // Link the existing Clinic record to the new User
+            clinic.userId = user._id;
+            await clinic.save();
+
+            // Clean up TempRegister
+            await TempRegister.deleteOne({ email });
+
+            return { user, profile: clinic };
+        } catch (error) {
+            if (user) await User.deleteOne({ _id: user._id });
+            if (!error.statusCode) error.statusCode = 400;
+            throw error;
+        }
+    }
+
+    // ── ALL OTHER ROLES (email-based, unchanged) ───────────────────────────
+    const email = input.email?.toLowerCase().trim();
 
     const temp = await TempRegister.findOne({ email });
     if (!temp) {
@@ -100,26 +167,38 @@ export const completeRegistration = async (input) => {
             case "therapist":
                 profile = await Therapist.create(profileData);
                 break;
-            case "clinic":
-                profile = await Clinic.create({
-                    ...profileData,
-                    status: "PENDING_APPROVAL"
-                });
-                break;
             default:
                 throw new Error("Invalid user role");
         }
 
         await TempRegister.deleteOne({ email });
+
+        // Notify Admins for new Provider registrations
+        if (temp.role === "doctor" || temp.role === "therapist") {
+            try {
+                const admins = await User.find({ role: "admin" });
+                for (const admin of admins) {
+                    await createNotification({
+                        recipientId: admin._id,
+                        recipientModel: "User",
+                        type: "SYSTEM",
+                        title: `New ${temp.role === "doctor" ? "Doctor" : "Therapist"} Registered 🩺`,
+                        message: `${profile.fullName || email} has joined HealHub as a ${temp.role}.`,
+                        priority: "INFO",
+                        link: `/admin/users/${user._id}`
+                    });
+                }
+            } catch (notifyErr) {
+                console.error("Failed to notify admins of new provider registration:", notifyErr);
+            }
+        }
+
         return { user, profile };
 
     } catch (error) {
-        // CLEANUP: If profile creation fails, delete the created user to prevent orphans
         if (user) {
             await User.deleteOne({ _id: user._id });
         }
-
-        // Rethrow the error for the controller to handle
         if (!error.statusCode) error.statusCode = 400;
         throw error;
     }

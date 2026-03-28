@@ -4,7 +4,7 @@ import config from "../config/config.js";
 // Create JWT
 function createJwt(payload) {
   return jwt.sign(payload, config.jwtSecret, {
-    expiresIn: "1d", 
+    expiresIn: "7d",
   });
 }
 

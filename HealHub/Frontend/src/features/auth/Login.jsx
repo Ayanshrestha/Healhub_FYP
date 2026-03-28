@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "./services/authService";
+import { clearSession } from "../../services/api";
+import { toast } from "react-hot-toast";
 import {
   Loader2,
   Mail,
@@ -26,25 +28,34 @@ export default function Login() {
     { id: "Doctor", label: "Doctor", icon: Stethoscope, color: "emerald" },
     { id: "Clinic", label: "Clinic", icon: Building2, color: "sky" },
     { id: "Therapist", label: "Therapist", icon: Activity, color: "indigo" },
-    { id: "Admin", label: "Admin", icon: ShieldCheck, color: "slate" },
   ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    clearSession();
     setLoading(true);
+    try {
       const response = await login({
         email,
         password,
         role: selectedRole.toLowerCase()
-      }); try {
-   
+      });
+
 
       if (response.success) {
         localStorage.setItem("token", response.token);
-        localStorage.setItem("user", JSON.stringify(response.user));
+
+        const userDataToStore = {
+          ...response.user,
+          fullName: response.profile?.fullName || response.user.fullName,
+          profilePhoto: response.profile?.profilePhoto || response.user.profilePhoto
+        };
+
+        localStorage.setItem("user", JSON.stringify(userDataToStore));
 
         if (selectedRole === "Admin") {
           localStorage.setItem("adminToken", response.token);
+          localStorage.setItem("adminUser", JSON.stringify(userDataToStore));
           navigate("/admin/dashboard");
         } else if (selectedRole === "Clinic") {
           localStorage.setItem("clinic_token", response.token);
@@ -67,9 +78,11 @@ export default function Login() {
           }
           navigate(response.nextStep === "DASHBOARD" ? (role === "doctor" || role === "therapist" ? "/provider/dashboard" : `/${role}/dashboard`) : "/");
         }
+        toast.success(`Welcome to HealHub, ${userDataToStore.fullName || "User"}!`);
       }
     } catch (error) {
-      alert(error.response?.data?.message || "Login failed");
+      console.error("Login component error:", error);
+      toast.error(error.response?.data?.message || error.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -193,14 +206,24 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col items-center space-y-4">
+            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center space-y-6">
               <p className="text-slate-500 font-medium">
                 New to HealHub?
                 <Link to="/signup" className="text-teal-600 font-black ml-2 hover:underline">Create Account</Link>
               </p>
 
-              <Link to="/admin/login" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-500 transition-colors">
-                System Administrator Node
+              <div className="w-full relative flex items-center py-2">
+                <div className="flex-grow border-t border-slate-200"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-widest">or</span>
+                <div className="flex-grow border-t border-slate-200"></div>
+              </div>
+
+              <Link
+                to="/admin/login"
+                className="w-full py-4 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-50 hover:border-slate-300 transition-all duration-300 flex items-center justify-center space-x-2"
+              >
+                <ShieldCheck className="w-5 h-5 text-slate-400" />
+                <span>Login as Administrator</span>
               </Link>
             </div>
           </div>
