@@ -22,14 +22,15 @@ export const getAggregatedReports = async (userId) => {
         .lean();
 
     const messageReports = messages.flatMap(msg => msg.attachments.map(att => ({
-        name: att.name,
+        originalName: att.name,
         url: att.url,
         type: msg.type,
-        sharedBy: msg.providerId?.fullName,
-        sharedFrom: msg.clinicId?.clinicName,
-        date: msg.createdAt,
+        providerName: msg.providerId?.fullName || "Facility Staff",
+        clinicName: msg.clinicId?.clinicName || "Private Practice",
+        createdAt: msg.createdAt,
         source: "Message"
     })));
+
 
     // 2. Get reports from appointments (future integration: doctors might upload directly to appointment)
     // For now, let's assume notes could contain links or we add an attachments field to Appointment

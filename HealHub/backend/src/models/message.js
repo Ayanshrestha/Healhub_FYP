@@ -10,7 +10,9 @@ const messageSchema = new mongoose.Schema(
         providerId: {
             type: mongoose.Schema.Types.ObjectId,
             required: true,
+            refPath: 'providerType'
         },
+
         providerType: {
             type: String,
             required: true,
