@@ -12,7 +12,9 @@ import {
     Check,
     CheckCheck,
     Loader2,
-    MessageSquare
+    MessageSquare,
+    FileText,
+    X
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import * as providerService from "../services/providerService";
@@ -51,7 +53,10 @@ const ProviderMessages = () => {
     const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [uploading, setUploading] = useState(false);
+    const [attachment, setAttachment] = useState(null);
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
     const socket = useRef();
 
     useEffect(() => {
@@ -87,6 +92,7 @@ const ProviderMessages = () => {
         };
     }, []);
 
+
     useEffect(() => {
         if (selectedChat) {
             const fetchChatHistory = async () => {
@@ -97,6 +103,8 @@ const ProviderMessages = () => {
 
                     // Join the specific chat room
                     socket.current.emit("join_chat", selectedChat.appointmentId.toString());
+                    // Also mark read
+                    providerService.markMessagesRead(selectedChat.appointmentId);
                 } catch (err) {
                     console.error("Fetch chat history error:", err);
                 } finally {
@@ -143,39 +151,68 @@ const ProviderMessages = () => {
         }
     }, [selectedChat]);
 
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("attachment", file);
+
+        try {
+            const response = await providerService.uploadFile(formData);
+            setAttachment(response.data);
+            toast.success("File uploaded successfully");
+        } catch (error) {
+            console.error("Upload failed:", error);
+            toast.error("File upload failed");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !selectedChat) return;
+        if ((!newMessage.trim() && !attachment) || !selectedChat) return;
 
         const tempId = Date.now().toString();
-        const optimisticMsg = {
-            _id: tempId,
-            tempId,
-            content: newMessage,
-            sender: "PROVIDER",
-            createdAt: new Date().toISOString(),
-            sending: true
-        };
-
-        setMessages(prev => [...prev, optimisticMsg]);
-        setNewMessage("");
+        
+        // Optimistic update for text-only
+        if (!attachment) {
+            const optimisticMsg = {
+                _id: tempId,
+                tempId,
+                content: newMessage,
+                sender: "PROVIDER",
+                createdAt: new Date().toISOString(),
+                sending: true
+            };
+            setMessages(prev => [...prev, optimisticMsg]);
+            setNewMessage("");
+        }
 
         const msgData = {
             appointmentId: selectedChat.appointmentId,
-            content: newMessage,
-            type: "TEXT",
+            content: newMessage || (attachment ? `Shared a medical document: ${attachment.name}` : ""),
+            type: attachment ? "REPORT" : "TEXT",
+            attachments: attachment ? [attachment] : [],
             tempId
         };
 
         try {
             await providerService.sendMessage(msgData);
+            if (attachment) {
+                setAttachment(null);
+                setNewMessage("");
+            }
         } catch (err) {
             console.error("Send message error:", err);
-            setMessages(prev => prev.filter(m => m._id !== tempId));
+            if (!attachment) setMessages(prev => prev.filter(m => m._id !== tempId));
             toast.error("Failed to send message");
         }
     };
@@ -297,6 +334,7 @@ const ProviderMessages = () => {
                                                 {date}
                                             </div>
                                         </div>
+
                                         {group.map((msg) => {
                                             const isMe = msg.sender === "PROVIDER";
                                             return (
@@ -304,12 +342,32 @@ const ProviderMessages = () => {
                                                     key={msg._id}
                                                     className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                                                 >
-                                                    <div className={`max-w-[70%] space-y-1`}>
+                                                    <div className="max-w-[70%] space-y-1">
                                                         <div className={`p-4 rounded-[1.5rem] font-bold text-sm shadow-sm ${isMe
                                                             ? 'bg-teal-600 text-white rounded-tr-none shadow-teal-100/50'
                                                             : 'bg-white text-gray-800 border border-gray-50 rounded-tl-none'
                                                             }`}>
                                                             {msg.content}
+                                                            
+                                                            {msg.attachments && msg.attachments.length > 0 && (
+                                                                <div className="mt-3 space-y-2">
+                                                                    {msg.attachments.map((at, i) => (
+                                                                        <a
+                                                                            key={i}
+                                                                            href={`http://localhost:5000${at.url}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className={`flex items-center space-x-2 p-3 rounded-xl border ${isMe
+                                                                                ? 'bg-white/10 border-white/20 text-white'
+                                                                                : 'bg-teal-50 border-teal-100 text-teal-700'
+                                                                                } hover:scale-[1.02] transition-transform`}
+                                                                        >
+                                                                            <FileText className="w-4 h-4" />
+                                                                            <span className="text-[10px] font-black truncate max-w-[150px] uppercase tracking-tighter">{at.name}</span>
+                                                                        </a>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className={`flex items-center space-x-1.5 px-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                             <span className="text-[9px] font-black text-gray-300 uppercase tracking-tighter">
@@ -325,6 +383,7 @@ const ProviderMessages = () => {
                                                 </div>
                                             );
                                         })}
+
                                     </div>
                                 ))
                             ) : (
@@ -343,26 +402,60 @@ const ProviderMessages = () => {
 
                         {/* Input Area */}
                         <div className="p-6 bg-white border-t border-gray-50">
-                            <form onSubmit={handleSendMessage} className="flex items-center space-x-4">
-                                <button type="button" className="p-3 text-gray-400 hover:text-teal-600 transition-colors">
-                                    <Paperclip className="w-5 h-5" />
-                                </button>
-                                <div className="flex-1 relative">
+                            <form onSubmit={handleSendMessage} className="space-y-4">
+                                {attachment && (
+                                    <div className="flex items-center justify-between p-3 bg-teal-50 border border-teal-100 rounded-2xl animate-slideUp">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
+                                                <FileText className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-teal-900 uppercase tracking-tighter truncate max-w-[200px]">{attachment.name}</p>
+                                                <p className="text-[9px] text-teal-600 font-bold uppercase">Clinical Document Ready</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAttachment(null)}
+                                            className="p-1 hover:bg-teal-100 rounded-lg text-teal-600 transition"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                                <div className="flex items-center space-x-4">
                                     <input
-                                        type="text"
-                                        placeholder="Type medical instructions..."
-                                        value={newMessage}
-                                        onChange={(e) => setNewMessage(e.target.value)}
-                                        className="w-full bg-slate-50 border-none px-6 py-3.5 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-teal-600 transition-all outline-none"
+                                        type="file"
+                                        className="hidden"
+                                        ref={fileInputRef}
+                                        onChange={handleFileUpload}
+                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploading}
+                                        className="p-3 text-gray-400 hover:text-teal-600 transition-colors disabled:opacity-50"
+                                    >
+                                        {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
+                                    </button>
+                                    <div className="flex-1 relative">
+                                        <input
+                                            type="text"
+                                            placeholder={attachment ? "Add instructions for this document..." : "Type medical instructions..."}
+                                            value={newMessage}
+                                            onChange={(e) => setNewMessage(e.target.value)}
+                                            className="w-full bg-slate-50 border-none px-6 py-3.5 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-teal-600 transition-all outline-none"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={(!newMessage.trim() && !attachment) || uploading}
+                                        className="p-3.5 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all disabled:opacity-50 disabled:grayscale shadow-lg shadow-gray-200"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                    </button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={!newMessage.trim()}
-                                    className="p-3.5 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all disabled:opacity-50 disabled:grayscale shadow-lg shadow-gray-200"
-                                >
-                                    <Send className="w-5 h-5" />
-                                </button>
                             </form>
                         </div>
                     </>

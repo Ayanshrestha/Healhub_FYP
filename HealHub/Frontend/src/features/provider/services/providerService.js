@@ -126,10 +126,21 @@ export const sendMessage = async (messageData) => {
     return response.data;
 };
 
+
 export const markMessagesRead = async (appointmentId) => {
     const response = await api.patch(`/provider/messages/${appointmentId}/read`);
     return response.data;
 };
+
+export const uploadFile = async (formData) => {
+    const response = await api.post("/provider/messages/upload", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    });
+    return response.data;
+};
+
 
 /**
  * Earnings

@@ -33,7 +33,10 @@ router.post("/appointments/:appointmentId/attachments", upload.array("files", 5)
 
 // Messaging
 router.get("/messages/:appointmentId", messagingController.getHistory);
+
 router.post("/messages", messagingController.sendMessage);
+router.post("/messages/upload", upload.single("attachment"), messagingController.uploadFile);
+
 
 // Earnings
 router.get("/earnings", providerController.getEarnings);
