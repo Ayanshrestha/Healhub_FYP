@@ -6,12 +6,13 @@ import { createJwt } from "../../utils/jwt.js";
  */
 export const startRegistration = async (req, res) => {
     try {
-        const result = await userAuthService.startRegistration(req.body);
+        const result = await userAuthService.startRegistration(req.body, req.file);
         res.status(200).json({
             success: true,
             message: "Registration started. OTP sent.",
             data: result
         });
+
     } catch (error) {
         res.status(error.statusCode || 500).json({
             success: false,

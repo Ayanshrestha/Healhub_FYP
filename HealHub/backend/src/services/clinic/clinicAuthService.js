@@ -30,7 +30,7 @@ export const registerClinicFromOtp = async (email) => {
         return existing;
     }
 
-    const { clinicName, ownerName, phone, licenseNumber, address } = temp.data;
+    const { clinicName, ownerName, phone, licenseNumber, address, licenseDocument } = temp.data;
 
     const clinic = await Clinic.create({
         clinicName,
@@ -40,7 +40,14 @@ export const registerClinicFromOtp = async (email) => {
         licenseNumber,
         address,
         status: "PENDING_APPROVAL",
+        documents: licenseDocument ? [{
+            name: "Medical Registration License",
+            url: licenseDocument,
+            type: "IDENTITY_PROOF",
+            uploadedAt: new Date()
+        }] : []
     });
+
 
     // Store the clinicId in TempRegister so completeRegistration can link it later
     temp.data = { ...temp.data, clinicId: clinic._id.toString() };

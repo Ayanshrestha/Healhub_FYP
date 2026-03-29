@@ -12,9 +12,15 @@ import { createNotification } from "../common/notificationService.js";
 /**
  * Start Registration (OTP Step)
  */
-export const startRegistration = async (input) => {
+export const startRegistration = async (input, file) => {
     const email = input.email?.toLowerCase().trim();
     const { role } = input;
+
+    // Capture uploaded file if present (e.g., Clinic License)
+    if (file) {
+        input.licenseDocument = file.path.replace(/\\/g, '/'); // Normalize path
+    }
+
 
     let existingUser = await User.findOne({ email });
 
