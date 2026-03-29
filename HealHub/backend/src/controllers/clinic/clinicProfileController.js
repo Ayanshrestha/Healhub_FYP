@@ -66,3 +66,31 @@ export const changePassword = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
+export const uploadImages = async (req, res) => {
+    try {
+        const clinic = await clinicProfileService.getProfileByUserId(req.user._id);
+        if (!clinic) return res.status(404).json({ message: "Clinic not found" });
+
+        const updateData = {};
+        if (req.files?.clinicImage) {
+            updateData.clinicImage = `/uploads/profiles/${req.files.clinicImage[0].filename}`;
+        }
+        if (req.files?.clinicLogo) {
+            updateData.clinicLogo = `/uploads/profiles/${req.files.clinicLogo[0].filename}`;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({ message: "No images uploaded" });
+        }
+
+        const result = await clinicProfileService.updateClinicProfile(clinic._id, updateData);
+        res.status(200).json({
+            success: true,
+            message: "Images updated successfully",
+            clinic: result
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

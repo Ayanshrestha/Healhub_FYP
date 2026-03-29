@@ -13,10 +13,22 @@ import {
     Activity
 } from "lucide-react";
 import patientService from "../services/patientService";
+import { BASE_URL } from "../../../services/api";
 
 const PatientReports = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const handleDownload = (url, name) => {
+        const link = document.createElement("a");
+        link.href = `${BASE_URL}${url}`;
+        link.target = "_blank";
+        link.download = name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
 
     useEffect(() => {
         fetchReports();
@@ -75,24 +87,33 @@ const PatientReports = () => {
                                     </div>
                                 </div>
                             </div>
-                            <button className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-teal-600 hover:text-white transition-all shadow-sm">
+                            <button 
+                                onClick={() => handleDownload(report.url, report.originalName)}
+                                title="Download Report"
+                                className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-teal-600 hover:text-white transition-all shadow-sm"
+                            >
                                 <Download className="w-5 h-5" />
                             </button>
+
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="bg-slate-50 p-4 rounded-2xl">
-                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Provider</p>
+                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Consultant</p>
                                 <div className="flex items-center text-slate-700 font-bold text-sm">
                                     <Stethoscope className="w-3.5 h-3.5 mr-2 text-teal-500" />
                                     {report.providerName}
                                 </div>
                             </div>
                             <div className="bg-slate-50 p-4 rounded-2xl">
-                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Clinic</p>
-                                <p className="text-slate-700 font-bold text-sm truncate">{report.clinicName}</p>
+                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Facility / Clinic</p>
+                                <div className="flex items-center text-slate-700 font-bold text-sm">
+                                    <ShieldCheck className="w-3.5 h-3.5 mr-2 text-teal-500" />
+                                    {report.clinicName}
+                                </div>
                             </div>
                         </div>
+
 
                         <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between text-[11px] font-black text-slate-400 uppercase tracking-widest">
                             <div className="flex items-center">

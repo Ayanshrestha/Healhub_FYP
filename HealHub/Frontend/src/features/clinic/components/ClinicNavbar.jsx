@@ -16,14 +16,16 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import clinicService from "../services/clinicService";
-
+import { clearSession } from "../../../services/api";
 import NotificationDropdown from "../../patient/components/NotificationDropdown";
+import { useSocket } from "../../../context/SocketContext";
 
 const ClinicNavbar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
 
     const navLinks = [
         { name: "Dashboard", path: "/clinic/dashboard", icon: LayoutDashboard },
@@ -35,10 +37,48 @@ const ClinicNavbar = () => {
     ];
 
     const handleLogout = () => {
-        localStorage.removeItem("clinic_token");
-        localStorage.removeItem("clinic_status");
+        clearSession();
         navigate("/login");
     };
+
+    const [unreadStats, setUnreadStats] = useState({ total: 0, byAppointment: {} });
+    const { socket } = useSocket();
+
+    const fetchUnread = async () => {
+        try {
+            const stats = await clinicService.getUnreadCounts();
+            setUnreadStats(stats);
+        } catch (error) {
+            console.error("Failed to fetch unread counts:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUnread();
+        // Refresh every 30 seconds for non-socket updates
+        const interval = setInterval(fetchUnread, 30000);
+
+        // Listen for real-time updates
+        if (socket) {
+            socket.on('unread_count_update', (data) => {
+                console.log("📥 Real-time unread update received:", data);
+                fetchUnread();
+            });
+        }
+
+        // Listen for local "Read" events
+        const handleRead = () => {
+            console.log("✅ Local read event received - refreshing Navbar");
+            fetchUnread();
+        };
+        window.addEventListener('clinical_messages_read', handleRead);
+
+        return () => {
+            clearInterval(interval);
+            if (socket) socket.off('unread_count_update');
+            window.removeEventListener('clinical_messages_read', handleRead);
+        };
+    }, [socket]);
 
     // Close dropdowns on route change
     useEffect(() => {
@@ -65,17 +105,24 @@ const ClinicNavbar = () => {
                     <div className="hidden md:flex items-center space-x-2">
                         {navLinks.map((link) => {
                             const isActive = location.pathname === link.path;
+                            const hasBadge = (link.name === "Appointments" || link.name === "Patients") && unreadStats.total > 0;
+
                             return (
                                 <button
                                     key={link.name}
                                     onClick={() => navigate(link.path)}
-                                    className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${isActive
+                                    className={`relative flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 cursor-pointer ${isActive
                                         ? "bg-teal-50 text-teal-600 shadow-sm shadow-teal-100"
                                         : "text-gray-500 hover:text-teal-600 hover:bg-gray-50"
                                         }`}
                                 >
                                     <link.icon className="w-4 h-4" />
                                     <span>{link.name}</span>
+                                    {hasBadge && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-teal-600 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white shadow-sm font-black animate-bounce-subtle">
+                                            {unreadStats.total > 9 ? "9+" : unreadStats.total}
+                                        </span>
+                                    )}
                                 </button>
                             );
                         })}
@@ -89,8 +136,16 @@ const ClinicNavbar = () => {
                                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                                 className="flex items-center space-x-3 focus:outline-none cursor-pointer group"
                             >
-                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all">
-                                    CA
+                                <div className="text-right hidden xl:block">
+                                    <p className="text-xs font-bold text-gray-900 leading-none group-hover:text-teal-600 transition-colors uppercase tracking-tight">{user.fullName || "Clinic Admin"}</p>
+                                    <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-0.5">Verified Clinic</p>
+                                </div>
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white">
+                                    {user.profilePhoto ? (
+                                        <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                                    ) : (
+                                        (user.fullName?.charAt(0) || "C").toUpperCase()
+                                    )}
                                 </div>
                             </button>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
     Pill,
     Plus,
@@ -13,7 +14,8 @@ import {
     Info,
     ChevronDown,
     MapPin,
-    AlertCircle
+    AlertCircle,
+    Scan
 } from "lucide-react";
 import patientService from "../services/patientService";
 import toast from "react-hot-toast";
@@ -22,6 +24,8 @@ const MedicineReminders = () => {
     const [reminders, setReminders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate(); // I need to import this too if not there
 
     const [formData, setFormData] = useState({
         medicineName: "",
@@ -38,7 +42,16 @@ const MedicineReminders = () => {
 
     useEffect(() => {
         fetchReminders();
-    }, []);
+
+        // Handle pre-fill from Scanner
+        if (location.state?.prefill) {
+            setFormData(prev => ({
+                ...prev,
+                ...location.state.prefill
+            }));
+            setShowModal(true);
+        }
+    }, [location.state]);
 
     const fetchReminders = async () => {
         try {
@@ -137,13 +150,22 @@ const MedicineReminders = () => {
                     <p className="text-gray-500 text-sm mt-1">Track and manage your daily medication schedule</p>
                 </div>
 
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="flex items-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-teal-600 transition-all shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Medicine</span>
-                </button>
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => window.location.href = '/patient/scan-medicine'}
+                        className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-blue-100 transition-all border border-blue-100"
+                    >
+                        <Scan className="w-4 h-4" />
+                        <span>Scan Medicine</span>
+                    </button>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="flex items-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-teal-600 transition-all shadow-sm"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Medicine</span>
+                    </button>
+                </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

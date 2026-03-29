@@ -10,9 +10,12 @@ import {
     LogOut,
     Menu,
     X,
-    Settings
+    Settings,
+    MessageSquare,
+    Scan
 } from "lucide-react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
+import { clearSession } from "../../../services/api";
 import NotificationDropdown from "./NotificationDropdown";
 
 const PatientNavbar = () => {
@@ -25,14 +28,14 @@ const PatientNavbar = () => {
         { name: "Dashboard", path: "/patient/dashboard", icon: LayoutDashboard },
         { name: "Clinics", path: "/patient/clinics", icon: Search },
         { name: "Appointments", path: "/patient/appointments", icon: Calendar },
+        { name: "Messages", path: "/patient/messages", icon: MessageSquare },
         { name: "Medicines", path: "/patient/medicines", icon: Pill },
+        { name: "Scanner", path: "/patient/scan-medicine", icon: Scan },
         { name: "Reports", path: "/patient/reports", icon: FileText },
     ];
 
     const handleLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("role");
+        clearSession();
         navigate("/login");
     };
 
