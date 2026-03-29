@@ -119,7 +119,7 @@ const SubscriptionBillingPage = () => {
                             <CreditCard className="w-5 h-5" />
                             <span>Payment Source</span>
                         </h3>
-                        <div className="p-6 bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl text-white mb-6">
+                        <div className="p-6 bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl text-white mb-6 shadow-lg shadow-teal-100">
                             <p className="text-xs font-bold uppercase tracking-widest opacity-60 mb-8">Connected Wallet</p>
                             <p className="text-xl font-bold tracking-widest mb-2 font-mono">•••• •••• •••• 5678</p>
                             <div className="flex justify-between items-center opacity-80 pt-4 border-t border-white/10 mt-4">
@@ -127,6 +127,7 @@ const SubscriptionBillingPage = () => {
                                 <span className="text-xs font-bold uppercase">Khalti Verified</span>
                             </div>
                         </div>
+
                         <button className="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 rounded-xl text-sm font-bold hover:bg-gray-50 transition">
                             Switch Gateway
                         </button>

@@ -77,10 +77,11 @@ const ClinicDashboard = () => {
                             <Activity className="w-4 h-4" />
                             <span>System Log</span>
                         </button>
-                        <button className="flex items-center space-x-2 bg-gray-900 border border-gray-900 px-5 py-2.5 rounded-2xl font-bold hover:bg-black transition shadow-lg text-white">
+                        <button className="flex items-center space-x-2 bg-gradient-to-r from-teal-600 to-emerald-600 border border-teal-600 px-5 py-2.5 rounded-2xl font-bold hover:scale-[1.02] transition shadow-lg shadow-teal-100 text-white">
                             <Plus className="w-4 h-4" />
                             <span>Emergency Slot</span>
                         </button>
+
                     </div>
                 </div>
 

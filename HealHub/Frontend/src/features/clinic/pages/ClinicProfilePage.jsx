@@ -377,19 +377,24 @@ const ClinicProfilePage = () => {
 
                     <div className="space-y-12">
                         {/* Contact Meta */}
-                        <section className="bg-gray-900 rounded-[40px] p-10 shadow-2xl text-white">
-                            <h3 className="text-xl font-black mb-8">Access Meta</h3>
+                        <section className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+                            <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center space-x-3">
+                                <div className="p-2 bg-teal-50 rounded-xl text-teal-600">
+                                    <Phone className="w-5 h-5" />
+                                </div>
+                                <span>Access Meta</span>
+                            </h3>
                             <div className="space-y-8">
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Primary Phone</label>
                                     <div className="relative">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-600" />
                                         <input
                                             type="tel"
                                             name="phone"
                                             value={profile.phone || ""}
                                             onChange={handleChange}
-                                            className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold focus:bg-white/10 transition-all outline-none"
+                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl text-sm font-bold text-gray-800 focus:border-teal-500 focus:bg-white transition-all outline-none"
                                             placeholder="Loading phone..."
                                         />
                                     </div>
@@ -397,19 +402,20 @@ const ClinicProfilePage = () => {
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-1">Geospatial Coordinates</label>
                                     <div className="relative">
-                                        <MapPin className="absolute left-4 top-4 w-4 h-4 text-gray-500" />
+                                        <MapPin className="absolute left-4 top-4 w-4 h-4 text-teal-600" />
                                         <textarea
                                             name="address"
                                             value={profile.address || ""}
                                             onChange={handleChange}
                                             rows="3"
-                                            className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm font-bold focus:bg-white/10 transition-all outline-none resize-none"
+                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-transparent rounded-2xl text-sm font-bold text-gray-800 focus:border-teal-500 focus:bg-white transition-all outline-none resize-none"
                                             placeholder="Loading address..."
                                         />
                                     </div>
                                 </div>
                             </div>
                         </section>
+
 
                         {/* Facilities Tagging */}
                         <section className="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">

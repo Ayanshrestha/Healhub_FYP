@@ -263,46 +263,53 @@ const PatientDashboard = () => {
                 {/* Right Column: Reminders & Alerts */}
                 <div className="space-y-8 h-full">
                     {/* Medication Reminders */}
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2rem] p-8 border border-white/10 shadow-xl text-white">
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h3 className="text-xl font-bold tracking-tight">Medications</h3>
-                                <p className="text-slate-400 text-xs font-medium mt-1">Today's Schedule</p>
+                                <h3 className="text-xl font-bold text-slate-800 tracking-tight">Medications</h3>
+                                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Today's Schedule</p>
                             </div>
-                            <button className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-colors">
-                                <Search className="w-5 h-5 text-white/60" />
+                            <button className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center hover:bg-teal-50 transition-colors group">
+                                <Search className="w-5 h-5 text-slate-400 group-hover:text-teal-600" />
                             </button>
                         </div>
 
                         {reminders.length > 0 ? (
                             <div className="space-y-4">
                                 {reminders.map((rem, i) => (
-                                    <div key={rem._id} className="relative group p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 transition-all">
+                                    <div key={rem._id} className="relative group p-5 rounded-2xl bg-slate-50 border border-transparent hover:border-teal-100 hover:bg-white transition-all duration-300">
                                         <div className="flex items-start justify-between">
                                             <div>
-                                                <h4 className="font-bold text-white group-hover:text-emerald-400 transition-colors">{rem.medicineName}</h4>
-                                                <p className="text-slate-400 text-xs mt-1 font-medium italic">{rem.dosage} • {rem.frequency}</p>
+                                                <h4 className="font-bold text-slate-800 group-hover:text-teal-600 transition-colors">{rem.medicineName}</h4>
+                                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-tighter mt-1">{rem.dosage} • {rem.frequency}</p>
                                             </div>
-                                            <div className="bg-emerald-500/10 px-2 py-1 rounded-lg text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                                            <div className="bg-teal-50 px-2 py-1 rounded-lg text-teal-600 text-[10px] font-black uppercase tracking-widest border border-teal-100/50">
                                                 {rem.times?.[0]}
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-                                <button className="w-full mt-4 py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-black text-sm uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-teal-500/20">
+                                <button 
+                                    onClick={() => navigate("/patient/medicines")}
+                                    className="w-full mt-4 py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg shadow-teal-100 cursor-pointer"
+                                >
                                     Manage Schedule
                                 </button>
                             </div>
                         ) : (
-                            <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
-                                <Pill className="w-10 h-10 text-white/20 mx-auto mb-3" />
-                                <p className="text-white/40 font-bold text-xs uppercase">No active reminders</p>
-                                <button className="mt-3 text-emerald-400 text-xs font-black uppercase tracking-widest hover:text-emerald-300">
+                            <div className="py-8 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-100">
+                                <Pill className="w-10 h-10 text-slate-200 mx-auto mb-3" />
+                                <p className="text-slate-300 font-bold text-xs uppercase italic">No active reminders</p>
+                                <button 
+                                    onClick={() => navigate("/patient/medicines")}
+                                    className="mt-3 text-teal-600 text-xs font-black uppercase tracking-widest hover:text-emerald-500"
+                                >
                                     + Add Medication
                                 </button>
                             </div>
                         )}
                     </div>
+
 
                     {/* Health Tip / AI Suggestion */}
                     <div className="bg-emerald-500 rounded-[2rem] p-8 text-white relative overflow-hidden group">

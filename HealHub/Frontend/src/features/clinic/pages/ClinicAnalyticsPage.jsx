@@ -140,18 +140,19 @@ const ClinicAnalyticsPage = () => {
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-[2rem] shadow-xl flex flex-col justify-center space-y-3 hover:rotate-1 transition-all">
-                            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                        <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-8 rounded-[2rem] shadow-xl flex flex-col justify-center space-y-3 hover:scale-[1.02] transition-all text-white">
+                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                                 <Users className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-gray-300/60 uppercase tracking-widest">Daily Performance</p>
+                                <p className="text-[10px] font-black text-teal-50 uppercase tracking-widest opacity-70">Daily Performance</p>
                                 <p className="text-3xl font-black text-white mt-1">
                                     Rs. {(stats?.totalEarnings / (stats?.totalPatients || 1)).toFixed(0)}
-                                    <span className="text-sm font-bold text-gray-400 ml-2">Avg / Patient</span>
+                                    <span className="text-sm font-bold text-teal-100/60 ml-2">Avg / Patient</span>
                                 </p>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>

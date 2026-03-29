@@ -150,22 +150,24 @@ const MedicineReminders = () => {
                     <p className="text-gray-500 text-sm mt-1">Track and manage your daily medication schedule</p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <button
-                        onClick={() => window.location.href = '/patient/scan-medicine'}
-                        className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-blue-100 transition-all border border-blue-100"
+                        onClick={() => navigate('/patient/scan-medicine')}
+                        className="flex items-center space-x-2 bg-teal-50 text-teal-600 px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-teal-100 transition-all border border-teal-100/50"
                     >
                         <Scan className="w-4 h-4" />
-                        <span>Scan Medicine</span>
+                        <span className="hidden sm:inline">AI Scanner</span>
+                        <span className="sm:hidden">Scan</span>
                     </button>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center space-x-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-teal-600 transition-all shadow-sm"
+                        className="flex items-center space-x-2 bg-gradient-to-r from-teal-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-sm uppercase tracking-wider hover:scale-[1.02] transition-all shadow-lg shadow-teal-100"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add Medicine</span>
                     </button>
                 </div>
+
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
