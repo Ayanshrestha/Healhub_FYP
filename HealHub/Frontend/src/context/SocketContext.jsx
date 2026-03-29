@@ -85,10 +85,11 @@ export const SocketProvider = ({ children }) => {
 
         // Join user's private room
         newSocket.on("connect", () => {
-            const roomId = currentUser.userId || currentUser._id;
+            const roomId = currentUser.clinicId || currentUser.userId || currentUser._id;
             console.log(`📶 Global Socket Connected: ${newSocket.id} | Joining Room: ${roomId} | Role: ${currentUser.role}`);
             newSocket.emit("join_user_room", roomId);
         });
+
 
         // Listen for global notifications
         newSocket.on("notification", (data) => {

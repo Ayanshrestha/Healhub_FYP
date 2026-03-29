@@ -48,12 +48,14 @@ export default function Login() {
         const userDataToStore = {
           ...response.user,
           fullName: response.profile?.fullName || response.user.fullName,
-          profilePhoto: response.profile?.profilePhoto || response.user.profilePhoto
+          profilePhoto: response.profile?.profilePhoto || response.user.profilePhoto,
+          clinicId: selectedRole === "Clinic" ? response.profile?._id : null
         };
 
         localStorage.setItem("user", JSON.stringify(userDataToStore));
 
         if (selectedRole === "Admin") {
+
           localStorage.setItem("adminToken", response.token);
           localStorage.setItem("adminUser", JSON.stringify(userDataToStore));
           navigate("/admin/dashboard");

@@ -93,19 +93,20 @@ const clinicService = {
 
     // Notifications
     getNotifications: async () => {
-        const response = await api.get("/notifications");
+        const response = await api.get("/clinic/notifications");
         return response.data.notifications;
     },
 
     markNotificationRead: async (notificationId) => {
-        const response = await api.patch(`/notifications/${notificationId}/read`);
+        const response = await api.patch(`/clinic/notifications/${notificationId}/read`);
         return response.data.notification;
     },
 
     markAllNotificationsRead: async () => {
-        const response = await api.patch("/notifications/read-all");
+        const response = await api.patch("/clinic/notifications/read-all");
         return response.data.success;
     },
+
 
     // Profile/Billing (Using existing profile routes)
     getProfile: async () => {

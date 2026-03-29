@@ -55,7 +55,9 @@ router.get("/patients/:patientId/history", clinicPatientController.getHistory);
 
 // Notifications
 router.get("/notifications", clinicNotificationController.getNotifications);
+router.patch("/notifications/read-all", clinicNotificationController.markAllRead);
 router.patch("/notifications/:notificationId/read", clinicNotificationController.readNotification);
+
 
 // Messaging
 router.get("/messages/unread-counts", clinicMessagingController.getUnreadCounts);

@@ -28,5 +28,6 @@ export const getMyNotifications = async (recipientId) => {
 };
 
 export const markAsRead = async (notificationId) => {
-    return await Notification.findByIdAndUpdate(notificationId, { isRead: true }, { new: true });
+    return await Notification.findByIdAndUpdate(notificationId, { readAt: new Date() }, { new: true });
 };
+

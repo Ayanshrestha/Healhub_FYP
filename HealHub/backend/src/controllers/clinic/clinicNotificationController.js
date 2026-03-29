@@ -18,3 +18,13 @@ export const readNotification = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const markAllRead = async (req, res) => {
+    try {
+        await clinicNotificationService.markAllRead(req.clinic._id);
+        res.json({ success: true, message: "All notifications marked as read" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

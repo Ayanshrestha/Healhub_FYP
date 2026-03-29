@@ -10,11 +10,19 @@ export const getClinicNotifications = async (clinicId) => {
 export const markAsRead = async (notificationId, clinicId) => {
     return await Notification.findOneAndUpdate(
         { _id: notificationId, recipientId: clinicId },
-        { isRead: true },
+        { readAt: new Date() },
         { new: true }
+    );
+};
+
+export const markAllRead = async (clinicId) => {
+    return await Notification.updateMany(
+        { recipientId: clinicId, readAt: { $exists: false } },
+        { readAt: new Date() }
     );
 };
 
 export const createNotification = async (data) => {
     return await Notification.create(data);
 };
+
