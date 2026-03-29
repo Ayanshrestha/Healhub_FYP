@@ -1,9 +1,9 @@
 import React from "react";
-import { HeartPulse, Bell, LogOut, LayoutDashboard, Users, Building, BarChart3, Settings } from "lucide-react";
+import { Bell, LogOut, LayoutDashboard, Users, Building, BarChart3, Settings } from "lucide-react";
 import { useNavigate, NavLink } from "react-router-dom";
 import { logoutAdmin } from "../services/adminAuthService";
-
 import NotificationDropdown from "../../patient/components/NotificationDropdown";
+import Logo from "../../../components/common/Logo";
 
 const AdminNavbar = () => {
     const navigate = useNavigate();
@@ -27,12 +27,11 @@ const AdminNavbar = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
                     {/* Logo */}
-                    <NavLink to="/admin/dashboard" className="flex items-center space-x-3 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center transition-transform group-hover:rotate-12 group-hover:scale-110">
-                            <HeartPulse className="w-6 h-6 text-white" />
-                        </div>
-                        <h1 className="text-xl font-bold text-gray-900 hidden md:block tracking-tight">HealHub Admin</h1>
+                    <NavLink to="/admin/dashboard" className="focus:outline-none">
+                        <Logo customText="HealHub Admin" />
                     </NavLink>
+
+
 
                     {/* Navigation Links */}
                     <div className="hidden md:flex items-center space-x-2">

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-    HeartPulse,
     LayoutDashboard,
     Search,
     Calendar,
@@ -17,6 +16,7 @@ import {
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { clearSession } from "../../../services/api";
 import NotificationDropdown from "./NotificationDropdown";
+import Logo from "../../../components/common/Logo";
 
 const PatientNavbar = () => {
     const location = useLocation();
@@ -54,13 +54,12 @@ const PatientNavbar = () => {
                     {/* Logo */}
                     <Link
                         to="/patient/dashboard"
-                        className="flex-shrink-0 flex items-center space-x-2 focus:outline-none cursor-pointer group"
+                        className="focus:outline-none"
                     >
-                        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-12 group-hover:scale-110 transition-all font-bold">
-                            <HeartPulse className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-xl font-bold text-gray-900 tracking-tight">HealHub</span>
+                        <Logo />
                     </Link>
+
+
 
                     {/* Navigation Links - Centered */}
                     <div className="hidden md:flex items-center space-x-2">

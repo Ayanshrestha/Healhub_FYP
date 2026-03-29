@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShieldCheck, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import Logo from "../common/Logo";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -19,12 +20,10 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-20">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-200 group-hover:scale-105 transition-transform">
-              <ShieldCheck className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-800 tracking-tight">HealHub</span>
+          <Link to="/" className="focus:outline-none">
+            <Logo />
           </Link>
+
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-8">
