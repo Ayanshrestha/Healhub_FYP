@@ -159,13 +159,34 @@ const AdminClinicDetails = () => {
                             <div className="space-y-4">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
                                     <ShieldCheck className="w-4 h-4 mr-2" />
-                                    Medical License
+                                    Official Credentials
                                 </h3>
-                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 font-mono text-emerald-700 font-bold">
-                                    {clinic.licenseNumber || "N/A"}
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col space-y-3">
+                                    <div className="font-mono text-emerald-700 font-bold text-sm">
+                                        License: {clinic.licenseNumber || "N/A"}
+                                    </div>
+                                    {clinic.documents && clinic.documents.length > 0 ? (
+                                        <div className="pt-2 border-t border-gray-200/50">
+                                            {clinic.documents.map((doc, idx) => (
+                                                <a
+                                                    key={idx}
+                                                    href={`http://localhost:5000/${doc.url}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center text-xs font-black text-teal-600 uppercase tracking-widest hover:underline"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5 mr-2" />
+                                                    View {doc.name}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest">No documents uploaded</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                     <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">

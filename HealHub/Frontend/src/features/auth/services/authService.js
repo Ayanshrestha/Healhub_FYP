@@ -1,7 +1,12 @@
 import api from "../../../services/api";
 
-export const startRegistration = (data) =>
-  api.post("/auth/start-registration", data).then(res => res.data);
+export const startRegistration = (data) => {
+  const config = data instanceof FormData 
+    ? { headers: { "Content-Type": "multipart/form-data" } }
+    : {};
+  return api.post("/auth/start-registration", data, config).then(res => res.data);
+};
+
 
 export const verifyOtpAPI = (data) =>
   api.post("/otp/verify", data).then(res => res.data);

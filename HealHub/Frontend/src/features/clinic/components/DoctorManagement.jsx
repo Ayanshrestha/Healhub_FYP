@@ -161,60 +161,70 @@ const DoctorManagement = ({
             </div>
 
             {/* Invite Doctors Section */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden group">
+            <div className="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-xl shadow-gray-100/50 relative overflow-hidden group">
                 {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-teal-100 transition-all duration-700"></div>
 
                 <div className="relative z-10">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                         <div>
-                            <h3 className="text-3xl font-black tracking-tight">Invite Practitioners</h3>
-                            <p className="text-slate-400 font-bold mt-1 text-sm">Expand your clinical network by inviting specialized doctors.</p>
+                            <h3 className="text-3xl font-black text-gray-900 tracking-tight">Invite Practitioners</h3>
+                            <p className="text-gray-500 font-bold mt-1 text-sm">Expand your clinical network by inviting specialized doctors.</p>
                         </div>
                         <div className="flex items-center space-x-3 w-full md:w-auto">
-                            <select
-                                value={specializationFilter}
-                                onChange={(e) => setSpecializationFilter(e.target.value)}
-                                className="bg-white/10 border-white/10 rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-teal-500 outline-none w-full md:w-48 appearance-none cursor-pointer hover:bg-white/15 transition-all text-white"
-                            >
-                                <option value="" className="bg-slate-900">All Specializations</option>
-                                {specializations.map(s => (
-                                    <option key={s} value={s} className="bg-slate-900">{s}</option>
-                                ))}
-                            </select>
+                            <div className="relative w-full md:w-48">
+                                <select
+                                    value={specializationFilter}
+                                    onChange={(e) => setSpecializationFilter(e.target.value)}
+                                    className="bg-gray-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none w-full appearance-none cursor-pointer hover:bg-white transition-all text-gray-700"
+                                >
+                                    <option value="">All Specializations</option>
+                                    {specializations.map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    <Search className="w-3.5 h-3.5" />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredAvailable.length === 0 ? (
-                            <div className="col-span-full py-12 text-center bg-white/5 rounded-3xl border border-white/10">
-                                <Search className="w-10 h-10 text-white/20 mx-auto mb-3" />
-                                <p className="text-white/40 font-bold text-xs uppercase tracking-widest">No available doctors found</p>
+                            <div className="col-span-full py-20 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-100">
+                                <Search className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                                <p className="text-gray-400 font-black text-xs uppercase tracking-widest">No available doctors found</p>
+                                <p className="text-[10px] text-gray-300 font-bold uppercase mt-2">Try adjusting your filters</p>
                             </div>
                         ) : (
                             filteredAvailable.map((doc) => (
-                                <div key={doc._id} className="bg-white/5 border border-white/10 p-6 rounded-[2rem] hover:bg-white/[0.08] hover:border-teal-500/50 transition-all group/card">
+                                <div key={doc._id} className="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-teal-50/50 hover:border-teal-100 transition-all group/card">
                                     <div className="flex items-center space-x-4 mb-5">
-                                        <div className="w-14 h-14 rounded-2xl bg-white/10 overflow-hidden border border-white/5 group-hover/card:scale-105 transition-transform">
+                                        <div className="w-14 h-14 rounded-2xl bg-teal-50 overflow-hidden border border-teal-100 group-hover/card:scale-105 transition-transform">
                                             <img
-                                                src={doc.profilePhoto || `https://ui-avatars.com/api/?name=${doc.fullName}&background=1e293b&color=fff`}
+                                                src={doc.profilePhoto || `https://ui-avatars.com/api/?name=${doc.fullName}&background=F0FDFA&color=0D9488`}
                                                 className="w-full h-full object-cover"
                                                 alt=""
                                             />
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-white group-hover/card:text-teal-400 transition-colors">{doc.fullName}</h4>
-                                            <p className="text-[10px] font-black text-teal-500 uppercase tracking-widest mt-0.5">{doc.specialization}</p>
+                                            <h4 className="font-black text-gray-900 group-hover/card:text-teal-600 transition-colors uppercase tracking-tight">{doc.fullName}</h4>
+                                            <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest mt-0.5">{doc.specialization}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-3 mb-6">
-                                        <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                            <Clock className="w-3 h-3 mr-2 text-teal-500" />
-                                            <span>{doc.experienceYears} Years Experience</span>
+                                        <div className="flex items-center text-[10px] text-gray-500 font-black uppercase tracking-widest">
+                                            <div className="p-1 bg-teal-50 rounded-md mr-3">
+                                                <Clock className="w-3 h-3 text-teal-600" />
+                                            </div>
+                                            <span>{doc.experienceYears} Years Exp.</span>
                                         </div>
-                                        <div className="flex items-center text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                            <Eye className="w-3 h-3 mr-2 text-teal-500" />
+                                        <div className="flex items-center text-[10px] text-gray-500 font-black uppercase tracking-widest">
+                                            <div className="p-1 bg-teal-50 rounded-md mr-3">
+                                                <Building className="w-3 h-3 text-teal-600" />
+                                            </div>
                                             <span className="truncate">{doc.qualification}</span>
                                         </div>
                                     </div>
@@ -222,24 +232,25 @@ const DoctorManagement = ({
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => navigate(`/clinic/doctors/${doc._id}`)}
-                                            className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                                            className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
                                         >
                                             <Eye className="w-4 h-4" />
                                             Profile
                                         </button>
                                         <button
                                             onClick={() => onInvite(doc._id)}
-                                            className="flex-[2] py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-teal-400 transition-colors shadow-lg"
+                                            className="flex-[2] py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg shadow-teal-100"
                                         >
                                             Send Invitation
                                         </button>
                                     </div>
                                 </div>
-                            ))
+                            ) )
                         )}
                     </div>
                 </div>
             </div>
+
         </div>
     );
 };

@@ -28,17 +28,32 @@ export default function ClinicSignup() {
     licenseNumber: "",
     address: "",
     role: "clinic",
+    licenseDocument: null
   });
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    if (e.target.name === "licenseDocument") {
+      setForm({ ...form, licenseDocument: e.target.files[0] });
+    } else {
+      setForm({ ...form, [e.target.name]: e.target.value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.licenseDocument) {
+      toast.error("Please upload the clinic registration license.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await startRegistration(form);
+      const formData = new FormData();
+      Object.keys(form).forEach(key => {
+        formData.append(key, form[key]);
+      });
+
+      await startRegistration(formData);
       toast.success("Registration started. OTP sent successfully.");
       navigate("/verify-otp", { state: { email: form.email, role: "clinic" } });
     } catch (err) {
@@ -47,6 +62,7 @@ export default function ClinicSignup() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans overflow-x-hidden">
@@ -179,12 +195,31 @@ export default function ClinicSignup() {
                         value={form.licenseNumber}
                         onChange={handleChange}
                         placeholder="LM-XXXXXX"
-                        className="block w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-slate-800 font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+                        className="block w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl text-slate-800 font-bold placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all font-sans"
+                      />
+                    </div>
+                  </div>
+
+                  {/* License Document Upload */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">License Document (PDF/Image)</label>
+                    <div className="relative group">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-emerald-600 transition-colors">
+                        <Plus className="h-4.5 w-4.5 text-slate-300" />
+                      </div>
+                      <input
+                        type="file"
+                        name="licenseDocument"
+                        onChange={handleChange}
+                        accept=".pdf,image/*"
+                        required
+                        className="block w-full pl-11 pr-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl text-slate-500 font-bold file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 transition-all cursor-pointer"
                       />
                     </div>
                   </div>
                 </div>
               </div>
+
 
               {/* Section 3: Connectivity */}
               <div className="space-y-6 pt-4">
