@@ -39,7 +39,7 @@ export const getDashboardStats = async () => {
     }
 };
 
-export const getSystemData = async (type) => {
+export const getSystemData = async (type, options = {}) => {
     try {
         let path = "";
         switch (type) {
@@ -48,12 +48,13 @@ export const getSystemData = async (type) => {
             case "logs": path = "/admin/logs/list"; break;
             default: path = `/admin/data/${type}`;
         }
-        const response = await api.get(path);
+        const response = await api.get(path, { params: options });
         return response.data;
     } catch (error) {
         throw error.response?.data || { message: `Failed to fetch ${type}` };
     }
 };
+
 
 export const updateClinicStatus = async (clinicId, status) => {
     try {
