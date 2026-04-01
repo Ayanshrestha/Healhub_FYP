@@ -1,7 +1,8 @@
 import os
-# Must be set before importing torch or easyocr
+# Aggressive memory tuning for 512MB RAM constraints
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["MALLOC_ARENA_MAX"] = "2" # Reduces glibc memory fragmentation
 
 import torch
 torch.set_num_threads(1)
@@ -11,12 +12,19 @@ import easyocr
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, HTTPException
 import re
+import gc
 
 app = FastAPI(title="HealHub AI Medicine Scanner Service")
 
-# Initialize EasyOCR reader
-# gpu=False for compatibility. quantize=True uses dynamic quantization to cut RAM usage by ~50%
-reader = easyocr.Reader(['en'], gpu=False, quantize=True)
+# Global reader variable, initialized lazily to prevent OOM during startup
+_reader = None
+
+def get_reader():
+    global _reader
+    if _reader is None:
+        print("Initializing EasyOCR Model into Memory...")
+        _reader = easyocr.Reader(['en'], gpu=False, quantize=True)
+    return _reader
 
 # Medical keywords and units to validate if an image is likely a medicine
 MEDICAL_KEYWORDS = {
@@ -72,7 +80,8 @@ async def scan_image(file: UploadFile = File(...)):
 
         # 2. Extract text using EasyOCR
         # detail=0 returns only the text strings
-        results = reader.readtext(processed_img, detail=0)
+        ocr_reader = get_reader()
+        results = ocr_reader.readtext(processed_img, detail=0)
         
         if not results:
             return {
