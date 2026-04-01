@@ -44,20 +44,40 @@ export const matchMedicineWithScore = async (detectedName) => {
         medicine = await Medicine.findOne({ product_name: new RegExp(detectedName, 'i') });
         if (medicine) return { medicine, score: 0.85 };
 
-        // 3. Text search (Score based on textScore)
-        medicine = await Medicine.findOne(
-            { $text: { $search: detectedName } },
-            { score: { $meta: "textScore" } }
-        ).sort({ score: { $meta: "textScore" } });
+        // 3. Try Text search (Score based on textScore)
+        try {
+            medicine = await Medicine.findOne(
+                { $text: { $search: detectedName } },
+                { score: { $meta: "textScore" } }
+            ).sort({ score: { $meta: "textScore" } });
 
-        if (medicine) {
-            // Normalize score (Cap at 0.8 for text search matches)
-            return { medicine, score: 0.75 };
+            if (medicine) {
+                return { medicine, score: 0.75 };
+            }
+        } catch (textIndexError) {
+            // Text index might not exist on Atlas, continue to robust regex fallback
+        }
+
+        // 4. Robust Regex Fallback (Score: 0.6)
+        // Extract the first word or two (the core brand/salt name) ignoring dosages
+        const words = detectedName.split(/\s+/).filter(w => w.length > 3 && !w.match(/mg|ml|mcg|tablet|capsule/i));
+        if (words.length > 0) {
+            // Match if product_name contains the first significant word Extracted
+            const primaryWord = words[0];
+            medicine = await Medicine.findOne({ 
+                $or: [
+                    { product_name: new RegExp(primaryWord, 'i') },
+                    { salt_composition: new RegExp(primaryWord, 'i') }
+                ]
+            });
+            if (medicine) {
+                return { medicine, score: 0.6 };
+            }
         }
 
         return null;
     } catch (error) {
-        console.error("Match with score error:", error);
+        console.error("Match with score error:", error.message);
         return null;
     }
 };
