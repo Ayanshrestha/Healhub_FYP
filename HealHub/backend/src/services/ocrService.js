@@ -1,37 +1,34 @@
-import axios from "axios";
 import fs from "fs";
-import FormData from "form-data";
+import { createWorker } from "tesseract.js";
 
 /**
- * Extracts text from an image using the Python AI Microservice (EasyOCR).
+ * Extracts text natively from an image using Tesseract.js (Node.js).
+ * This bypasses the memory limits of PyTorch/Python on free servers.
  * @param {string} imagePath - Path to the image file.
  * @returns {Promise<string[]>} - Array of extracted text strings.
  */
 export const extractTextFromImage = async (imagePath) => {
     try {
-        const formData = new FormData();
-        formData.append('file', fs.createReadStream(imagePath));
-
-        const pythonUrl = process.env.PYTHON_AI_URL || 'http://localhost:8000';
-        const response = await axios.post(`${pythonUrl}/scan`, formData, {
-            headers: {
-                ...formData.getHeaders(),
-            },
+        console.log(`Starting native OCR with Tesseract on ${imagePath}...`);
+        // We use createWorker to spin up a tiny background thread for OCR
+        const worker = await createWorker('eng', 1, {
+            logger: m => console.log(`[Tesseract] Status: ${m.status}`)
         });
+        
+        const { data: { text } } = await worker.recognize(imagePath);
+        await worker.terminate();
 
-        if (response.data.success) {
-            return response.data.data; // Array of strings
-        } else {
-            // This handles the validation error from Python (e.g. "Not a medicine")
-            throw new Error(response.data.message || "Failed to extract text.");
+        // Split paragraph into an array of lines like Python used to return
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
+        
+        if (lines.length === 0) {
+            throw new Error("No readable text found in the image.");
         }
+        
+        return lines;
     } catch (error) {
-        if (error.response) {
-            console.error("Python Service Error:", error.response.data);
-            throw new Error(error.response.data.detail || "AI Service Error");
-        }
-        console.error("OCR extraction error:", error.message);
-        throw new Error(error.message || "Failed to connect to AI service. Make sure the Python server is running.");
+        console.error("Native OCR extraction error:", error.message);
+        throw new Error("Failed to extract medical text from image. Please ensure the image is clear.");
     }
 };
 
