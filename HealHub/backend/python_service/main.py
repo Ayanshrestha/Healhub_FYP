@@ -1,15 +1,22 @@
+import os
+# Must be set before importing torch or easyocr
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
+import torch
+torch.set_num_threads(1)
+
 import cv2
 import easyocr
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, HTTPException
-import os
 import re
 
 app = FastAPI(title="HealHub AI Medicine Scanner Service")
 
 # Initialize EasyOCR reader
-# gpu=False for compatibility, change to True if you have a CUDA GPU
-reader = easyocr.Reader(['en'], gpu=False)
+# gpu=False for compatibility. quantize=True uses dynamic quantization to cut RAM usage by ~50%
+reader = easyocr.Reader(['en'], gpu=False, quantize=True)
 
 # Medical keywords and units to validate if an image is likely a medicine
 MEDICAL_KEYWORDS = {
