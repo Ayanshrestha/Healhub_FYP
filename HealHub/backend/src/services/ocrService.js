@@ -12,7 +12,8 @@ export const extractTextFromImage = async (imagePath) => {
         const formData = new FormData();
         formData.append('file', fs.createReadStream(imagePath));
 
-        const response = await axios.post('http://localhost:8000/scan', formData, {
+        const pythonUrl = process.env.PYTHON_AI_URL || 'http://localhost:8000';
+        const response = await axios.post(`${pythonUrl}/scan`, formData, {
             headers: {
                 ...formData.getHeaders(),
             },
