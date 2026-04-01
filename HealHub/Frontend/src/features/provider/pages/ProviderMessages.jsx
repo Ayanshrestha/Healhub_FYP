@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import * as providerService from "../services/providerService";
-import { SOCKET_URL } from "../../../services/api";
+import { SOCKET_URL, BASE_URL } from "../../../services/api";
 
 import io from "socket.io-client";
 
@@ -354,7 +354,7 @@ const ProviderMessages = () => {
                                                                     {msg.attachments.map((at, i) => (
                                                                         <a
                                                                             key={i}
-                                                                            href={`http://localhost:5000${at.url}`}
+                                                                            href={`${BASE_URL}${at.url}`}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
                                                                             className={`flex items-center space-x-2 p-3 rounded-xl border ${isMe

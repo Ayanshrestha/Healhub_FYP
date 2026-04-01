@@ -6,6 +6,7 @@ import {
     Clipboard, AlertTriangle, FileText, Activity
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../../../services/api';
 
 const MedicineScanner = () => {
     const [image, setImage] = useState(null);
@@ -43,7 +44,7 @@ const MedicineScanner = () => {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:5000/api/medicine/scan', formData, {
+            const response = await axios.post(`${BASE_URL}/api/medicine/scan`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
