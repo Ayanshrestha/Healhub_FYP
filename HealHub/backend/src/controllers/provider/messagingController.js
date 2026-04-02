@@ -1,4 +1,5 @@
 import * as providerService from "../../services/provider/providerService.js";
+import * as messagingService from "../../services/provider/messagingService.js";
 import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const sendMessage = async (req, res) => {
