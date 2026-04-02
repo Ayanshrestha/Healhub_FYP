@@ -132,13 +132,17 @@ const PatientMessages = () => {
         setNewMessage("");
 
         try {
-            await patientService.sendMessage(appointmentId, newMessage, "TEXT", [], activeContext, tempId);
-            // The socket will replace the optimistic message.
+            const response = await patientService.sendMessage(appointmentId, newMessage, "TEXT", [], activeContext, tempId);
+            const savedMsg = response.data || response;
+
+            // Immediately replace optimistic message with the saved one from server
+            setMessages(prev => prev.map(m => m.tempId === tempId ? { ...savedMsg, tempId } : m));
         } catch (error) {
             console.error("Send error:", error);
             // Remove optimistic message on error
-            setMessages(prev => prev.filter(m => m._id !== tempId));
+            setMessages(prev => prev.filter(m => m.tempId !== tempId));
             setNewMessage(optimisticMsg.content);
+            toast.error("Failed to send message");
         } finally {
             setSending(false);
         }

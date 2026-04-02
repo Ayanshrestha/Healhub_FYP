@@ -205,14 +205,19 @@ const ProviderMessages = () => {
         };
 
         try {
-            await providerService.sendMessage(msgData);
+            const response = await providerService.sendMessage(msgData);
+            const savedMsg = response.message || response.data || response;
+            
+            // Immediately replace optimistic message with the saved one from server
+            setMessages(prev => prev.map(m => m.tempId === tempId ? { ...savedMsg, tempId } : m));
+
             if (attachment) {
                 setAttachment(null);
                 setNewMessage("");
             }
         } catch (err) {
             console.error("Send message error:", err);
-            if (!attachment) setMessages(prev => prev.filter(m => m._id !== tempId));
+            setMessages(prev => prev.filter(m => m.tempId !== tempId));
             toast.error("Failed to send message");
         }
     };
