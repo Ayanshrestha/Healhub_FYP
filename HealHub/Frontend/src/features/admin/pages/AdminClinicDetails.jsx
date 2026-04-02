@@ -13,7 +13,8 @@ import {
     CheckCircle2,
     XCircle,
     Calendar,
-    CreditCard
+    CreditCard,
+    FileText
 } from "lucide-react";
 import { getClinicDetailsAPI, updateClinicStatus } from "../services/adminAuthService";
 import { BASE_URL } from "../../../services/api";
