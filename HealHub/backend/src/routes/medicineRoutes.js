@@ -5,15 +5,8 @@ import authMiddleware from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// Multer configuration for temporary storage of uploaded images
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/");
-    },
-    filename: (req, file, cb) => {
-        cb(null, `scan-${Date.now()}-${file.originalname}`);
-    }
-});
+// Multer configuration for temporary storage of uploaded images (Memory only for Cloudinary/OCR)
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage,

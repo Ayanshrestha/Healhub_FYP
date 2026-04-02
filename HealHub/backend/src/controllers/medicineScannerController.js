@@ -8,11 +8,8 @@ export const scanMedicine = async (req, res) => {
             return res.status(400).json({ message: "No image uploaded." });
         }
 
-        const imagePath = req.file.path;
-        console.log(`Scanning image: ${imagePath}`);
-
-        // 1. Extract text
-        const rawText = await extractTextFromImage(imagePath);
+        // 1. Extract text from buffer
+        const rawText = await extractTextFromImage(req.file.buffer);
         const cleanedLines = cleanOCRText(rawText);
 
         if (cleanedLines.length === 0) {

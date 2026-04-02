@@ -36,7 +36,7 @@ export const updateClinicStatus = async (clinicId, status, adminId) => {
                 { expiresIn: "48h" }
             );
 
-            const frontendUrl = config.appUrl || "http://localhost:3000";
+            const frontendUrl = config.appUrl;
             const setPasswordLink = `${frontendUrl}/set-password?token=${token}`;
 
             const html = getClinicApprovalTemplate({

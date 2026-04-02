@@ -1,4 +1,5 @@
 import * as clinicProfileService from "../../services/clinic/clinicProfileService.js";
+import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const getProfile = async (req, res) => {
     try {
@@ -74,10 +75,12 @@ export const uploadImages = async (req, res) => {
 
         const updateData = {};
         if (req.files?.clinicImage) {
-            updateData.clinicImage = `/uploads/profiles/${req.files.clinicImage[0].filename}`;
+            const uploadResult = await uploadToCloudinary(req.files.clinicImage[0].buffer, "profiles");
+            updateData.clinicImage = uploadResult.secure_url;
         }
         if (req.files?.clinicLogo) {
-            updateData.clinicLogo = `/uploads/profiles/${req.files.clinicLogo[0].filename}`;
+            const uploadResult = await uploadToCloudinary(req.files.clinicLogo[0].buffer, "profiles");
+            updateData.clinicLogo = uploadResult.secure_url;
         }
 
         if (Object.keys(updateData).length === 0) {

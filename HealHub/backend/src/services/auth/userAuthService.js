@@ -8,6 +8,7 @@ import Therapist from "../../models/therapist.js";
 import Clinic from "../../models/clinic.js";
 import * as otpService from "./otpService.js";
 import { createNotification } from "../common/notificationService.js";
+import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 /**
  * Start Registration (OTP Step)
@@ -18,7 +19,14 @@ export const startRegistration = async (input, file) => {
 
     // Capture uploaded file if present (e.g., Clinic License)
     if (file) {
-        input.licenseDocument = file.path.replace(/\\/g, '/'); // Normalize path
+        try {
+            const uploadResult = await uploadToCloudinary(file.buffer, "registrations");
+            input.licenseDocument = uploadResult.secure_url;
+        } catch (error) {
+            const err = new Error("Failed to upload license document. Please try again.");
+            err.statusCode = 500;
+            throw err;
+        }
     }
 
 

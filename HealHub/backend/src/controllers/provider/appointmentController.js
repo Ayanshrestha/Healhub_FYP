@@ -3,6 +3,7 @@ import * as providerService from "../../services/provider/providerService.js";
 import { logAction } from "../../utils/auditLogger.js";
 import { createNotification } from "../../services/notificationService.js";
 import { sendEmail, getAppointmentConfirmationTemplate, getAppointmentRejectionTemplate, getPaymentRequiredTemplate } from "../../services/common/emailService.js";
+import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const getAppointments = async (req, res) => {
     try {
@@ -297,11 +298,14 @@ export const uploadClinicalAttachments = async (req, res) => {
             return res.status(404).json({ success: false, message: "Appointment not found" });
         }
 
-        const newAttachments = req.files.map(file => ({
-            name: file.originalname,
-            url: `/uploads/${file.filename}`,
-            fileType: fileType || "OTHER",
-            uploadedAt: new Date()
+        const newAttachments = await Promise.all(req.files.map(async (file) => {
+            const uploadResult = await uploadToCloudinary(file.buffer, "clinical_docs");
+            return {
+                name: file.originalname,
+                url: uploadResult.secure_url,
+                fileType: fileType || "OTHER",
+                uploadedAt: new Date()
+            };
         }));
 
         appointment.attachments.push(...newAttachments);

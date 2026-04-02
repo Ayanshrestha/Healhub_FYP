@@ -31,8 +31,8 @@ export const initiatePayment = async (clinicId, planName) => {
     }
 
     const payload = {
-        return_url: config.khalti.returnUrl || "http://localhost:3000/payment-verification",
-        website_url: "http://localhost:3000",
+        return_url: config.khalti.returnUrl || `${config.appUrl}/payment-verification`,
+        website_url: config.appUrl,
         amount: plan.amount * 100, // Khalti expects amount in paisa
         purchase_order_id: `${clinic._id}_${Date.now()}`,
         purchase_order_name: `${plan.name} Subscription`,
@@ -94,8 +94,8 @@ export const initiateAppointmentPayment = async (appointmentId) => {
     const amount = doctor.consultationFee || 500;
 
     const payload = {
-        return_url: "http://localhost:3000/patient/payment-verification",
-        website_url: "http://localhost:3000",
+        return_url: config.khalti.returnUrl || `${config.appUrl}/patient/payment-verification`,
+        website_url: config.appUrl,
         amount: amount * 100, // paisa
         purchase_order_id: `APP_${appointment._id}_${Date.now()}`,
         purchase_order_name: `Consultation with Dr. ${doctor.fullName}`,

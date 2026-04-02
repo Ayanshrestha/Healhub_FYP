@@ -1,5 +1,6 @@
 import * as providerService from "../../services/provider/providerService.js";
 import { logAction } from "../../utils/auditLogger.js";
+import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const getDashboardStats = async (req, res) => {
     try {
@@ -59,7 +60,8 @@ export const uploadProfilePhoto = async (req, res) => {
             return res.status(400).json({ success: false, message: "No image file provided" });
         }
 
-        const profilePhotoUrl = `${req.protocol}://${req.get("host")}/uploads/profiles/${req.file.filename}`;
+        const uploadResult = await uploadToCloudinary(req.file.buffer, "profiles");
+        const profilePhotoUrl = uploadResult.secure_url;
 
         // Update profile with new photo URL
         const profile = await providerService.updateProviderProfile(req.user._id, req.user.role, {

@@ -33,17 +33,17 @@ const isMedicalContent = (lines) => {
 /**
  * Extracts text natively from an image using Tesseract.js (Node.js).
  * This bypasses the memory limits of PyTorch/Python on free servers.
- * @param {string} imagePath - Path to the image file.
+ * @param {string|Buffer} imageSource - Path to the image file OR Buffer.
  * @returns {Promise<string[]>} - Array of extracted text strings.
  */
-export const extractTextFromImage = async (imagePath) => {
+export const extractTextFromImage = async (imageSource) => {
     try {
-        console.log(`Starting native OCR with Tesseract on ${imagePath}...`);
+        console.log(`Starting native OCR with Tesseract on ${Buffer.isBuffer(imageSource) ? 'Buffer' : imageSource}...`);
         const worker = await createWorker('eng', 1, {
             logger: m => console.log(`[Tesseract] Status: ${m.status}`)
         });
         
-        const { data: { text } } = await worker.recognize(imagePath);
+        const { data: { text } } = await worker.recognize(imageSource);
         await worker.terminate();
 
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);

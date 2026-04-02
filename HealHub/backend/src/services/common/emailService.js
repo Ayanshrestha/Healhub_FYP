@@ -114,7 +114,7 @@ export const getAppointmentConfirmationTemplate = (data) => {
         
         <p>Please arrive at the clinic at least 15 minutes prior to your scheduled time.</p>
         <div style="text-align: center; margin-top: 30px;">
-           <a href="http://localhost:3000/patient/appointments" style="background-color: #27ae60; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Appointment Details</a>
+           <a href="${config.appUrl}/patient/appointments" style="background-color: #27ae60; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">View Appointment Details</a>
         </div>
       </div>
       <div style="background-color: #f4f7f6; padding: 20px; text-align: center; color: #888; font-size: 12px;">
@@ -212,7 +212,7 @@ export const getPaymentRequiredTemplate = (data) => {
         
         <p>Please log in to your dashboard to complete the payment.</p>
         <div style="text-align: center; margin-top: 30px;">
-           <a href="http://localhost:3000/patient/appointments" style="background-color: #f39c12; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Pay for Appointment Now</a>
+           <a href="${config.appUrl}/patient/appointments" style="background-color: #f39c12; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Pay for Appointment Now</a>
         </div>
       </div>
       <div style="background-color: #f4f7f6; padding: 20px; text-align: center; color: #888; font-size: 12px;">

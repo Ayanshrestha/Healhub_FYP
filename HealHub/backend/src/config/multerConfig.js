@@ -8,42 +8,8 @@ if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir);
 }
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        let subDir = "others";
-
-        // Dynamic subdirectories
-        if (file.fieldname === "photo" || file.fieldname === "clinicImage" || file.fieldname === "clinicLogo") {
-            subDir = "profiles";
-        } else if (file.fieldname === "report") {
-            subDir = "reports";
-        } else if (file.fieldname === "attachment") {
-            subDir = "messages";
-        } else if (file.fieldname === "licenseDocument") {
-            subDir = "registrations";
-        }
-
-        const targetDir = path.join(baseDir, subDir);
-
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
-        }
-        cb(null, targetDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        let name = "file";
-
-        if (file.fieldname === "photo") name = `profile-${req.user?._id || 'anon'}`;
-        else if (file.fieldname === "clinicImage") name = `clinic-hero-${req.user?._id || 'anon'}`;
-        else if (file.fieldname === "clinicLogo") name = `clinic-logo-${req.user?._id || 'anon'}`;
-        else if (file.fieldname === "licenseDocument") name = `license-${req.body?.email || 'pending'}`;
-        else name = `doc-${req.user?._id || 'anon'}`;
-
-        cb(null, `${name}-${uniqueSuffix}${path.extname(file.originalname)}`);
-
-    }
-});
+// Switch to memoryStorage for Cloudinary
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     // Accept images and PDFs
