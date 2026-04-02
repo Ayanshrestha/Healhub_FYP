@@ -33,6 +33,7 @@ router.post("/appointments/:appointmentId/attachments", upload.array("files", 5)
 
 // Messaging
 router.get("/messages/:appointmentId", messagingController.getHistory);
+router.patch("/messages/:appointmentId/read", messagingController.markRead);
 
 router.post("/messages", messagingController.sendMessage);
 router.post("/messages/upload", upload.single("attachment"), messagingController.uploadFile);

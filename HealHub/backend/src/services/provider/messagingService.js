@@ -66,3 +66,19 @@ export const markAsRead = async (messageIds) => {
         { readAt: new Date() }
     );
 };
+
+export const markMessagesRead = async (appointmentId, providerId) => {
+    // Verify visibility first
+    const appointment = await Appointment.findOne({ _id: appointmentId, providerId });
+    if (!appointment) return;
+
+    await Message.updateMany(
+        {
+            appointmentId: appointment._id,
+            context: "DIRECT",
+            sender: "PATIENT",
+            readAt: { $exists: false }
+        },
+        { $set: { readAt: new Date() } }
+    );
+};

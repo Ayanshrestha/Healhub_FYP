@@ -62,3 +62,19 @@ export const uploadFile = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+export const markRead = async (req, res) => {
+    try {
+        const { appointmentId } = req.params;
+        const provider = await providerService.getProviderProfile(req.user._id, req.user.role);
+        
+        if (!provider) {
+            return res.status(404).json({ success: false, message: "Provider profile not found" });
+        }
+
+        await messagingService.markMessagesRead(appointmentId, provider._id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
