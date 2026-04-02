@@ -4,12 +4,14 @@ import DoctorManagement from "../components/DoctorManagement";
 import clinicService from "../services/clinicService";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const DoctorManagementPage = () => {
     const [doctors, setDoctors] = useState([]);
     const [applications, setApplications] = useState([]);
     const [availableDoctors, setAvailableDoctors] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, doctorId: null });
 
     const fetchData = async () => {
         try {
@@ -53,8 +55,13 @@ const DoctorManagementPage = () => {
         }
     };
 
-    const handleRemove = async (doctorId) => {
-        if (!window.confirm("Are you sure you want to remove this doctor?")) return;
+    const handleRemove = (doctorId) => {
+        setConfirmModal({ isOpen: true, doctorId });
+    };
+
+    const confirmRemove = async () => {
+        const { doctorId } = confirmModal;
+        setConfirmModal({ isOpen: false, doctorId: null });
         try {
             await clinicService.removeDoctor(doctorId);
             toast.success("Doctor removed from affiliation");
@@ -84,6 +91,16 @@ const DoctorManagementPage = () => {
                     onRemove={handleRemove}
                 />
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Remove Doctor"
+                message="Are you sure you want to remove this doctor from your clinical staff? They will no longer be able to manage appointments here."
+                confirmText="Yes, Remove"
+                confirmVariant="danger"
+                onConfirm={confirmRemove}
+                onCancel={() => setConfirmModal({ isOpen: false, doctorId: null })}
+            />
         </ClinicLayout>
     );
 };

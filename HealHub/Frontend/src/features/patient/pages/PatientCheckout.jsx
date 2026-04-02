@@ -14,6 +14,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import patientService from "../services/patientService";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const PatientCheckout = () => {
     const { appointmentId } = useParams();
@@ -21,6 +22,7 @@ const PatientCheckout = () => {
     const [appointment, setAppointment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -54,9 +56,12 @@ const PatientCheckout = () => {
         }
     };
 
-    const handleClinicPayment = async () => {
-        if (!window.confirm("Switch to 'Pay at Clinic'? Your slot will stay approved, and you can pay when you arrive.")) return;
+    const handleClinicPayment = () => {
+        setShowConfirmModal(true);
+    };
 
+    const confirmClinicPayment = async () => {
+        setShowConfirmModal(false);
         setProcessing(true);
         try {
             await patientService.switchToClinic(appointmentId);
@@ -203,6 +208,15 @@ const PatientCheckout = () => {
                     </div>
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title="Pay at Clinic"
+                message="Are you sure you want to switch to 'Pay at Clinic'? Your slot will stay approved, and you can settle the payment when you arrive at the facility."
+                confirmText="Yes, Switch"
+                confirmVariant="success"
+                onConfirm={confirmClinicPayment}
+                onCancel={() => setShowConfirmModal(false)}
+            />
         </div>
     );
 };

@@ -20,6 +20,7 @@ import {
     Stethoscope
 } from "lucide-react";
 import patientService from "../services/patientService";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const PatientAppointmentDetails = () => {
     const { id } = useParams();
@@ -28,6 +29,7 @@ const PatientAppointmentDetails = () => {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [message, setMessage] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
         fetchDetails();
@@ -46,8 +48,12 @@ const PatientAppointmentDetails = () => {
         }
     };
 
-    const handleCancel = async () => {
-        if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
+    const handleCancel = () => {
+        setShowConfirmModal(true);
+    };
+
+    const confirmCancel = async () => {
+        setShowConfirmModal(false);
         try {
             setActionLoading(true);
             await patientService.cancelAppointment(id);
@@ -318,6 +324,15 @@ const PatientAppointmentDetails = () => {
                     )}
                 </div>
             </div>
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title="Cancel Appointment"
+                message="Are you sure you want to cancel this appointment? This action cannot be undone and your slot will be released."
+                confirmText="Yes, Cancel"
+                confirmVariant="danger"
+                onConfirm={confirmCancel}
+                onCancel={() => setShowConfirmModal(false)}
+            />
         </div>
     );
 };

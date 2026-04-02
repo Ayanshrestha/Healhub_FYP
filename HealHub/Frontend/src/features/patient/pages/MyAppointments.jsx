@@ -15,8 +15,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import Navbar from "../../../components/layout/Navbar";
+import NavBar from "../../../components/layout/Navbar";
 import patientService from "../services/patientService";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const MyAppointments = () => {
     const navigate = useNavigate();
@@ -24,6 +25,7 @@ const MyAppointments = () => {
     const [past, setPast] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("upcoming");
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, appointmentId: null });
 
     useEffect(() => {
         fetchAppointments();
@@ -47,15 +49,19 @@ const MyAppointments = () => {
         }
     };
 
-    const handleCancel = async (id) => {
-        if (window.confirm("Are you sure you want to cancel this appointment?")) {
-            try {
-                await patientService.cancelAppointment(id);
-                fetchAppointments(); // Refresh
-                toast.success("Appointment cancelled successfully");
-            } catch (error) {
-                toast.error("Cancellation failed.");
-            }
+    const handleCancel = (id) => {
+        setConfirmModal({ isOpen: true, appointmentId: id });
+    };
+
+    const confirmCancel = async () => {
+        const { appointmentId } = confirmModal;
+        setConfirmModal({ isOpen: false, appointmentId: null });
+        try {
+            await patientService.cancelAppointment(appointmentId);
+            fetchAppointments(); // Refresh
+            toast.success("Appointment cancelled successfully");
+        } catch (error) {
+            toast.error("Cancellation failed.");
         }
     };
 
@@ -211,6 +217,16 @@ const MyAppointments = () => {
                     )
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Cancel Appointment"
+                message="Are you sure you want to cancel this appointment? This action cannot be undone and your slot will be released."
+                confirmText="Yes, Cancel"
+                confirmVariant="danger"
+                onConfirm={confirmCancel}
+                onCancel={() => setConfirmModal({ isOpen: false, appointmentId: null })}
+            />
         </div>
     );
 };

@@ -19,11 +19,13 @@ import {
 } from "lucide-react";
 import patientService from "../services/patientService";
 import toast from "react-hot-toast";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const MedicineReminders = () => {
     const [reminders, setReminders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, reminderId: null });
     const location = useLocation();
     const navigate = useNavigate(); // I need to import this too if not there
 
@@ -122,15 +124,19 @@ const MedicineReminders = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to remove this medication?")) {
-            try {
-                await patientService.deleteReminder(id);
-                toast.success("Reminder removed");
-                fetchReminders();
-            } catch (error) {
-                toast.error("Failed to delete reminder");
-            }
+    const handleDelete = (id) => {
+        setConfirmModal({ isOpen: true, reminderId: id });
+    };
+
+    const confirmDelete = async () => {
+        const { reminderId } = confirmModal;
+        setConfirmModal({ isOpen: false, reminderId: null });
+        try {
+            await patientService.deleteReminder(reminderId);
+            toast.success("Reminder removed");
+            fetchReminders();
+        } catch (error) {
+            toast.error("Failed to delete reminder");
         }
     };
 
@@ -366,6 +372,15 @@ const MedicineReminders = () => {
                     </div>
                 </div>
             )}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title="Remove Medication"
+                message="Are you sure you want to remove this medication reminder? This action cannot be undone."
+                confirmText="Yes, Remove"
+                confirmVariant="danger"
+                onConfirm={confirmDelete}
+                onCancel={() => setConfirmModal({ isOpen: false, reminderId: null })}
+            />
         </div>
     );
 };
