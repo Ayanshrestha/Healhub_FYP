@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getUserDetailsAPI, toggleUserStatus, verifyDoctorAPI } from "../services/adminAuthService";
 import { toast } from "react-hot-toast";
+import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const AdminUserDetails = () => {
     const { userId } = useParams();
@@ -27,6 +28,7 @@ const AdminUserDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [updating, setUpdating] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null });
 
     useEffect(() => {
         fetchUserDetails();
@@ -44,29 +46,27 @@ const AdminUserDetails = () => {
         }
     };
 
-    const handleToggleStatus = async () => {
-        if (!window.confirm(`Are you sure you want to ${data.user.status === 'active' ? 'suspend' : 'activate'} this user?`)) return;
-
-        setUpdating(true);
-        try {
-            await toggleUserStatus(userId);
-            await fetchUserDetails(); // Refresh data
-            toast.success("User status updated successfully");
-        } catch (err) {
-            toast.error(err.message || "Operation failed");
-        } finally {
-            setUpdating(false);
-        }
+    const handleToggleStatus = () => {
+        setConfirmModal({ isOpen: true, type: 'toggle' });
     };
 
-    const handleVerifyDoctor = async () => {
-        if (!window.confirm("Are you sure you want to verify this doctor? This will allow them to appear in search results.")) return;
+    const handleVerifyDoctor = () => {
+        setConfirmModal({ isOpen: true, type: 'verify' });
+    };
 
+    const handleConfirm = async () => {
+        setConfirmModal({ isOpen: false, type: null });
         setUpdating(true);
         try {
-            await verifyDoctorAPI(userId);
-            await fetchUserDetails(); // Refresh data
-            toast.success("Doctor verified successfully!");
+            if (confirmModal.type === 'toggle') {
+                await toggleUserStatus(userId);
+                await fetchUserDetails();
+                toast.success("User status updated successfully");
+            } else if (confirmModal.type === 'verify') {
+                await verifyDoctorAPI(userId);
+                await fetchUserDetails();
+                toast.success("Doctor verified successfully!");
+            }
         } catch (err) {
             toast.error(err.message || "Operation failed");
         } finally {
@@ -105,6 +105,8 @@ const AdminUserDetails = () => {
 
     const { user, profile } = data;
     const initials = (profile?.fullName || user.name || user.email || "?").split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase();
+
+    const isActive = data?.user?.status === 'active';
 
     return (
         <AdminLayout>
@@ -325,7 +327,19 @@ const AdminUserDetails = () => {
                     )}
                 </div>
             </div>
-        </AdminLayout >
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.type === 'verify' ? 'Verify Doctor' : isActive ? 'Suspend Account' : 'Activate Account'}
+                message={confirmModal.type === 'verify'
+                    ? 'This will allow the doctor to appear in patient search results.'
+                    : `Are you sure you want to ${isActive ? 'suspend' : 'activate'} this user's account?`
+                }
+                confirmText={confirmModal.type === 'verify' ? 'Yes, Verify' : isActive ? 'Yes, Suspend' : 'Yes, Activate'}
+                confirmVariant={confirmModal.type === 'verify' ? 'success' : isActive ? 'warning' : 'success'}
+                onConfirm={handleConfirm}
+                onCancel={() => setConfirmModal({ isOpen: false, type: null })}
+            />
+        </AdminLayout>
     );
 };
 
