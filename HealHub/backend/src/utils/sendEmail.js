@@ -1,33 +1,26 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
-    //  Gmail SMTP
-    // Reverting to the original "service: gmail" config which worked previously
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      pool: true, // Use a pool to keep connections open
-      auth: {
-        user: process.env.EMAIL_USER,      
-        pass: process.env.EMAIL_PASS, 
-      },
-      // Keep-alive settings to prevent timeouts
-      connectionTimeout: 20000, 
-      greetingTimeout: 20000,
-      socketTimeout: 20000,
-    });
-
-    // Email details
-    const mailOptions = {
-      from: `"HealHub" <${process.env.EMAIL_USER}>`,
+    const { data, error } = await resend.emails.send({
+      from: "HealHub <onboarding@resend.dev>",
       to,
       subject,
-      text: text || "No text content provided.",
       html: html || `<p>${text}</p>`,
-    };
+      text: text || "",
+    });
 
-    //Send email
-    await transporter.sendMail(mailOptions);
+    if (error) {
+      console.log("EMAIL ERROR:", error);
+      return {
+        success: false,
+        message: "Failed to send email",
+        error: error.message,
+        fullError: error
+      };
+    }
 
     return {
       success: true,
