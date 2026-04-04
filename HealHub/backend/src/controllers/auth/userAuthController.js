@@ -6,7 +6,17 @@ import { createJwt } from "../../utils/jwt.js";
  */
 export const startRegistration = async (req, res) => {
     try {
+        console.log("--- REGISTRATION ATTEMPT ---");
+        console.log("Body:", req.body);
+        console.log("File:", req.file ? {
+            fieldname: req.file.fieldname,
+            originalname: req.file.originalname,
+            size: req.file.size
+        } : "NONE");
+        
         const result = await userAuthService.startRegistration(req.body, req.file);
+        
+        console.log("Registration outcome: SUCCESS");
         res.status(200).json({
             success: true,
             message: "Registration started. OTP sent.",
@@ -14,6 +24,10 @@ export const startRegistration = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("--- REGISTRATION FAILURE ---");
+        console.error("Error Message:", error.message);
+        console.error("Stack:", error.stack);
+        
         res.status(error.statusCode || 500).json({
             success: false,
             message: error.message

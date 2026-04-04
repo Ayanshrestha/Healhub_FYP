@@ -3,12 +3,19 @@ import nodemailer from "nodemailer";
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
     //  Gmail SMTP
+    // Gmail SMTP with explicit host and port for better reliability on Render
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true, // Use SSL
       auth: {
         user: process.env.EMAIL_USER,      
         pass: process.env.EMAIL_PASS, 
       },
+      // Increase timeout for slow cloud networks
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     // Email details
