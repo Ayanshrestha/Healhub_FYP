@@ -3,18 +3,18 @@ import nodemailer from "nodemailer";
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
     //  Gmail SMTP
-    // Using Port 587 (STARTTLS) which is often more compatible with cloud firewalls
+    // Reverting to the original "service: gmail" config which worked previously
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // Use STARTTLS
+      service: "gmail",
+      pool: true, // Use a pool to keep connections open
       auth: {
         user: process.env.EMAIL_USER,      
         pass: process.env.EMAIL_PASS, 
       },
-      connectionTimeout: 15000, 
-      greetingTimeout: 15000,
-      socketTimeout: 15000,
+      // Keep-alive settings to prevent timeouts
+      connectionTimeout: 20000, 
+      greetingTimeout: 20000,
+      socketTimeout: 20000,
     });
 
     // Email details
