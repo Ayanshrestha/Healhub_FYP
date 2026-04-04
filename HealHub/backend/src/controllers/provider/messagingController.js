@@ -1,6 +1,5 @@
 import * as providerService from "../../services/provider/providerService.js";
 import * as messagingService from "../../services/provider/messagingService.js";
-import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const sendMessage = async (req, res) => {
     try {
@@ -49,13 +48,11 @@ export const uploadFile = async (req, res) => {
             return res.status(400).json({ success: false, message: "No file uploaded" });
         }
 
-        const uploadResult = await uploadToCloudinary(req.file.buffer, "messages");
-
         res.status(200).json({
             success: true,
             data: {
                 name: req.file.originalname,
-                url: uploadResult.secure_url
+                url: `/uploads/${req.file.filename}`
             }
         });
     } catch (error) {

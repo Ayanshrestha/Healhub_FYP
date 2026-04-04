@@ -1,5 +1,4 @@
 import * as patientService from "../../services/user/patientService.js";
-import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 export const getProfile = async (req, res) => {
     try {
@@ -64,9 +63,8 @@ export const uploadProfilePhoto = async (req, res) => {
             return res.status(400).json({ success: false, message: "No image file provided" });
         }
 
-        const uploadResult = await uploadToCloudinary(req.file.buffer, "profiles");
-        const profilePhotoUrl = uploadResult.secure_url;
-
+        const profilePhotoUrl = `/uploads/${req.file.filename}`;
+        
         // Update profile with new photo URL
         const result = await patientService.updatePatientProfile(req.user._id, {
             profilePhoto: profilePhotoUrl
