@@ -1,14 +1,20 @@
 import api from "../../../services/api";
 
 export const startRegistration = (data) => {
-  const isClinic = data instanceof FormData;
-  const endpoint = isClinic ? "/auth/start-registration-clinic" : "/auth/start-registration";
+  let payload = data;
   
-  const config = isClinic 
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : {};
+  // Always convert plain objects to FormData because the backend route 
+  // uses multer (multipart/form-data) to support optional file uploads.
+  if (!(data instanceof FormData)) {
+    payload = new FormData();
+    Object.keys(data).forEach(key => {
+      payload.append(key, data[key]);
+    });
+  }
 
-  return api.post(endpoint, data, config).then(res => res.data);
+  return api.post("/auth/start-registration", payload, {
+    headers: { "Content-Type": "multipart/form-data" }
+  }).then(res => res.data);
 };
 
 
