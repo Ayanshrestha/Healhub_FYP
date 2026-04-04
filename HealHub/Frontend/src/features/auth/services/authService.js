@@ -1,10 +1,22 @@
 import api from "../../../services/api";
 
 export const startRegistration = (data) => {
-  const config = data instanceof FormData 
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : {};
-  return api.post("/auth/start-registration", data, config).then(res => res.data);
+  let payload = data;
+  
+  // If data is a plain object (not FormData), convert it to FormData
+  // This is required because the backend now uses multer for all registrations
+  if (!(data instanceof FormData)) {
+    payload = new FormData();
+    Object.keys(data).forEach(key => {
+      // Append each key-value pair, ensuring nested objects are stringified
+      const value = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
+      payload.append(key, value);
+    });
+  }
+
+  return api.post("/auth/start-registration", payload, {
+    headers: { "Content-Type": "multipart/form-data" }
+  }).then(res => res.data);
 };
 
 

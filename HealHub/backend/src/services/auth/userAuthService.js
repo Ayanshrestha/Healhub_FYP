@@ -14,6 +14,12 @@ import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
  * Start Registration (OTP Step)
  */
 export const startRegistration = async (input, file) => {
+    console.log("START_REGISTRATION_INPUT:", {
+        role: input.role,
+        email: input.email,
+        hasFile: !!file,
+        bodyKeys: Object.keys(input)
+    });
     const email = input.email?.toLowerCase().trim();
     const { role } = input;
 
