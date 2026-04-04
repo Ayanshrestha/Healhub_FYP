@@ -8,7 +8,6 @@ import Therapist from "../../models/therapist.js";
 import Clinic from "../../models/clinic.js";
 import * as otpService from "./otpService.js";
 import { createNotification } from "../common/notificationService.js";
-import { uploadToCloudinary } from "../../config/cloudinaryConfig.js";
 
 /**
  * Start Registration (OTP Step)
@@ -23,17 +22,9 @@ export const startRegistration = async (input, file) => {
     const email = input.email?.toLowerCase().trim();
     const { role } = input;
 
-    // Capture uploaded file if present (e.g., Clinic License)
+    // Handle license document for clinics (local storage)
     if (file) {
-        try {
-            const uploadResult = await uploadToCloudinary(file.buffer, "registrations");
-            input.licenseDocument = uploadResult.secure_url;
-        } catch (error) {
-            console.error("REGISTRATION_UPLOAD_ERROR:", error);
-            const err = new Error(`File upload failed: ${error.message || "Unknown error"}`);
-            err.statusCode = 400;
-            throw err;
-        }
+        input.licenseDocument = `/uploads/${file.filename}`;
     }
 
 

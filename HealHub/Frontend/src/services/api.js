@@ -6,8 +6,8 @@ export const SOCKET_URL = BASE_URL;
 
 export const getAssetUrl = (path) => {
     if (!path) return "";
-    if (path.startsWith("http")) return path;
-    return `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+    // Since Cloudinary is removed, always prepend BASE_URL for local uploads
+    return `${BASE_URL}${path}`;
 };
 
 
