@@ -137,17 +137,17 @@ const ClinicProfile = () => {
                         />
                     ) : null}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                </div>
-
-                {/* Clinic Logo */}
-                <div className="absolute -bottom-16 left-8">
-                    <div className="w-32 h-32 bg-white rounded-3xl p-2 shadow-2xl border-4 border-white overflow-hidden">
-                        <img
-                            src={getAssetUrl(clinic.clinicLogo)}
-                            alt="Logo"
-                            className="w-full h-full object-cover rounded-2xl"
-                            onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
-                        />
+                    
+                    {/* Clinic Logo - Positioned relative to banner */}
+                    <div className="absolute -bottom-16 left-8 z-10">
+                        <div className="w-32 h-32 bg-white rounded-3xl p-2 shadow-2xl border-4 border-white overflow-hidden">
+                            <img
+                                src={getAssetUrl(clinic.clinicLogo)}
+                                alt="Logo"
+                                className="w-full h-full object-cover rounded-2xl"
+                                onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -166,35 +166,18 @@ const ClinicProfile = () => {
                 </div>
 
                 <div className="px-10 pb-12 relative">
-                    {/* Logo & Identity */}
-                    <div className="relative -mt-20 flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-100/80">
-                        <div className="flex flex-col md:flex-row md:items-end gap-8">
-                            <div className="w-40 h-40 bg-white rounded-[2.5rem] p-2 shadow-2xl border border-gray-100 flex items-center justify-center overflow-hidden">
-                                <div className="w-full h-full bg-teal-50 rounded-[2rem] flex items-center justify-center">
-                                    {clinic.clinicLogo && !logoError ? (
-                                        <img
-                                            src={`${BASE_URL}${clinic.clinicLogo}`}
-                                            alt="Logo"
-                                            className="w-full h-full object-cover"
-                                            onError={() => setLogoError(true)}
-                                        />
-                                    ) : null}
-                                    {(logoError || !clinic.clinicLogo) && (
-                                        <ShieldCheck className="w-16 h-16 text-teal-600" />
-                                    )}
+                    {/* Identity & Stats */}
+                    <div className="relative -mt-16 flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-100/80">
+                        <div className="mb-2">
+                            <div className="flex items-center space-x-3 mb-2">
+                                <h1 className="text-4xl font-black text-gray-900 tracking-tighter">{clinic.clinicName}</h1>
+                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-white" />
                                 </div>
                             </div>
-                            <div className="mb-2">
-                                <div className="flex items-center space-x-3 mb-2">
-                                    <h1 className="text-4xl font-black text-gray-900 tracking-tighter">{clinic.clinicName}</h1>
-                                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                                        <CheckCircle2 className="w-4 h-4 text-white" />
-                                    </div>
-                                </div>
-                                <div className="flex items-center text-gray-400 font-bold text-sm tracking-tight">
-                                    <MapPin className="w-4 h-4 mr-2 text-red-400" />
-                                    {clinic.address}
-                                </div>
+                            <div className="flex items-center text-gray-400 font-bold text-sm tracking-tight">
+                                <MapPin className="w-4 h-4 mr-2 text-red-400" />
+                                {clinic.address}
                             </div>
                         </div>
 
@@ -209,6 +192,7 @@ const ClinicProfile = () => {
                             </div>
                         </div>
                     </div>
+                </div>
 
                     {/* Content Sections */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-12">
@@ -364,7 +348,6 @@ const ClinicProfile = () => {
                             </section>
                         </div>
                     </div>
-                </div>
             </div>
         </div>
     );
