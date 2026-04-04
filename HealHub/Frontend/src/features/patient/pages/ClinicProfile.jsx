@@ -4,23 +4,16 @@ import {
     MapPin,
     Phone,
     Mail,
-    Clock,
-    ShieldCheck,
-    Globe,
     Star,
     Users,
     Award,
     ChevronRight,
-    Share2,
-    Heart,
-    Plus,
-    Shield,
-    Loader2,
-    Stethoscope,
     ArrowLeft,
     Zap,
     Activity,
-    CheckCircle2
+    CheckCircle2,
+    Stethoscope,
+    Globe
 } from "lucide-react";
 import { BASE_URL, getAssetUrl } from "../../../services/api";
 import patientService from "../services/patientService";
@@ -42,7 +35,6 @@ const ClinicProfile = () => {
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
     const [heroError, setHeroError] = useState(false);
-    const [logoError, setLogoError] = useState(false);
 
     useEffect(() => {
         const fetchClinicData = async () => {
@@ -100,8 +92,6 @@ const ClinicProfile = () => {
         </div>
     );
 
-
-
     return (
         <div className="space-y-12 pb-24 max-w-7xl mx-auto">
             {/* Header / Navigation */}
@@ -133,12 +123,13 @@ const ClinicProfile = () => {
                             className="w-full h-full object-cover"
                             onError={(e) => {
                                 e.target.src = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80";
+                                setHeroError(true);
                             }}
                         />
                     ) : null}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     
-                    {/* Clinic Logo - Positioned relative to banner */}
+                    {/* Clinic Logo - Overlapping Banner */}
                     <div className="absolute -bottom-16 left-8 z-10">
                         <div className="w-32 h-32 bg-white rounded-3xl p-2 shadow-2xl border-4 border-white overflow-hidden">
                             <img
@@ -152,22 +143,9 @@ const ClinicProfile = () => {
                 </div>
 
                 <div className="px-10 pb-12 relative">
-                    {/* Floating Badges */}
-                    <div className="absolute top-8 right-8 flex flex-col items-end gap-3">
-                        <div className="bg-white/95 backdrop-blur-md px-5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 border border-white">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                            <span className="text-sm font-black text-gray-900 tracking-tight">4.9</span>
-                        </div>
-                        <div className="bg-teal-600 px-5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 border border-teal-500">
-                            <Award className="w-4 h-4 text-white" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Verified Medical Facility</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="px-10 pb-12 relative">
-                    {/* Identity & Stats */}
+                    {/* Identity & Stats Section */}
                     <div className="relative -mt-16 flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-gray-100/80">
+                        {/* Clinic Name & Address */}
                         <div className="mb-2">
                             <div className="flex items-center space-x-3 mb-2">
                                 <h1 className="text-4xl font-black text-gray-900 tracking-tighter">{clinic.clinicName}</h1>
@@ -181,22 +159,37 @@ const ClinicProfile = () => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
-                            <div className="text-center px-6 border-r border-gray-200">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Active Staff</p>
-                                <p className="text-2xl font-black text-gray-900">{clinic.totalDoctors || 0}</p>
+                        {/* Badges & Stats (Unified to prevent overlap) */}
+                        <div className="flex flex-col items-end gap-5">
+                            {/* Verified & Rating Badges */}
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-xl shadow-lg flex items-center space-x-2 border border-white">
+                                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                    <span className="text-sm font-black text-gray-900 tracking-tight">4.9</span>
+                                </div>
+                                <div className="bg-teal-600 px-5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 border border-teal-500">
+                                    <Award className="w-4 h-4 text-white" />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Verified Medical Facility</span>
+                                </div>
                             </div>
-                            <div className="text-center px-6">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Experience</p>
-                                <p className="text-2xl font-black text-gray-900">15+ <span className="text-sm font-bold text-gray-400">Yrs</span></p>
+
+                            {/* Staff & Experience Box */}
+                            <div className="flex items-center gap-6 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
+                                <div className="text-center px-6 border-r border-gray-200">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Active Staff</p>
+                                    <p className="text-2xl font-black text-gray-900">{clinic.totalDoctors || 0}</p>
+                                </div>
+                                <div className="text-center px-6">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Experience</p>
+                                    <p className="text-2xl font-black text-gray-900">15+ <span className="text-sm font-bold text-gray-400">Yrs</span></p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                    {/* Content Sections */}
+                    {/* Main Content: Info & Details */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 pt-12">
-                        {/* Info Column */}
+                        {/* Left Column: Vision & Contact */}
                         <div className="lg:col-span-4 space-y-10">
                             <section>
                                 <div className="flex items-center space-x-2 mb-4">
@@ -283,7 +276,7 @@ const ClinicProfile = () => {
                             )}
                         </div>
 
-                        {/* Specialists / Departments Column */}
+                        {/* Right Column: Specialists & Departments */}
                         <div className="lg:col-span-8 space-y-12">
                             <section>
                                 <div className="flex items-center justify-between mb-8 px-2">
@@ -340,7 +333,6 @@ const ClinicProfile = () => {
                                                 <span>Book Appointment</span>
                                                 <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
                                             </div>
-                                            {/* Decorative Background Element */}
                                             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-teal-100/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                                         </div>
                                     ))}
@@ -348,6 +340,7 @@ const ClinicProfile = () => {
                             </section>
                         </div>
                     </div>
+                </div>
             </div>
         </div>
     );
