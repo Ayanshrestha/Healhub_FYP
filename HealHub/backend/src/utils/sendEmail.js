@@ -35,6 +35,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
       success: false,
       message: "Failed to send email",
       error: error.message,
+      fullError: error
     };
   }
 };

@@ -23,8 +23,9 @@ export const startRegistration = async (input, file) => {
             const uploadResult = await uploadToCloudinary(file.buffer, "registrations");
             input.licenseDocument = uploadResult.secure_url;
         } catch (error) {
-            const err = new Error("Failed to upload license document. Please try again.");
-            err.statusCode = 500;
+            console.error("REGISTRATION_UPLOAD_ERROR:", error);
+            const err = new Error(`File upload failed: ${error.message || "Unknown error"}`);
+            err.statusCode = 400;
             throw err;
         }
     }
