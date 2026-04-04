@@ -2,12 +2,18 @@ import nodemailer from "nodemailer";
 import config from "../../config/config.js";
 
 // Create a transporter using config credentials
+// Create a robust transporter using explicit host/port for cloud reliability
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
     user: config.emailUser,
     pass: config.emailPass,
   },
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
 });
 
 /**
