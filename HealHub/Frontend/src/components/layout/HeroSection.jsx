@@ -64,6 +64,9 @@ export default function HeroSection() {
           <div className="relative rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(13,148,136,0.15)] border border-white/20 scale-105 transform rotate-2">
             <img
               src="/healthcare_hero_illustration_1770010678924.png"
+              onError={(e) => {
+                e.target.src = "https://images.unsplash.com/photo-1631217818242-277900354236?auto=format&fit=crop&q=80";
+              }}
               alt="Healthcare Illustration"
               className="w-full h-auto object-cover"
             />
