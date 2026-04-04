@@ -1,26 +1,33 @@
-import { Resend } from "resend";
 import config from "../../config/config.js";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /**
- * Send a generic email via Resend HTTP API (bypasses SMTP restrictions)
+ * Send a generic email via Brevo HTTP API (any recipient, no domain needed)
  */
 export const sendEmail = async ({ to, subject, html }) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: "HealHub <onboarding@resend.dev>",
-      to,
-      subject,
-      html,
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "HealHub", email: "noreply@healhub.com" },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
 
-    if (error) {
-      console.error("❌ Error sending email:", error);
-      throw new Error(error.message);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("❌ Error sending email:", errorData);
+      throw new Error(errorData.message || "Failed to send email");
     }
 
-    console.log(`📧 Email sent: ${data?.id}`);
+    const data = await response.json();
+    console.log(`📧 Email sent: ${data?.messageId}`);
     return data;
   } catch (error) {
     console.error("❌ Error sending email:", error);
