@@ -8,7 +8,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        sender: { name: "HealHub", email: "noreply@healhub.com" },
+        sender: { name: "HealHub", email: process.env.EMAIL_USER },
         to: [{ email: to }],
         subject,
         htmlContent: html || `<p>${text}</p>`,

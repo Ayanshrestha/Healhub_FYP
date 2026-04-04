@@ -13,7 +13,7 @@ export const sendEmail = async ({ to, subject, html }) => {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        sender: { name: "HealHub", email: "noreply@healhub.com" },
+        sender: { name: "HealHub", email: process.env.EMAIL_USER || config.emailUser },
         to: [{ email: to }],
         subject,
         htmlContent: html,
