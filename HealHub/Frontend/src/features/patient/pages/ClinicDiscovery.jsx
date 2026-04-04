@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, MapPin, Star, Users, ChevronRight, Filter, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import patientService from "../services/patientService";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 
 const ClinicCard = ({ clinic, navigate }) => {
     const [imageError, setImageError] = useState(false);
@@ -15,7 +15,7 @@ const ClinicCard = ({ clinic, navigate }) => {
             <div className="h-40 bg-gray-100 relative">
                 {clinic.clinicImage && !imageError ? (
                     <img
-                        src={`${BASE_URL}${clinic.clinicImage}`}
+                        src={getAssetUrl(clinic.clinicImage)}
                         alt={clinic.clinicName}
                         className="w-full h-full object-cover"
                         onError={() => setImageError(true)}

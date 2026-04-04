@@ -17,7 +17,7 @@ import {
     FileText
 } from "lucide-react";
 import { getClinicDetailsAPI, updateClinicStatus } from "../services/adminAuthService";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 import { toast } from "react-hot-toast";
 
 const AdminClinicDetails = () => {
@@ -172,7 +172,7 @@ const AdminClinicDetails = () => {
                                             {clinic.documents.map((doc, idx) => (
                                                 <a
                                                     key={idx}
-                                                    href={`${BASE_URL}/${doc.url}`}
+                                                    href={getAssetUrl(doc.url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex items-center text-xs font-black text-teal-600 uppercase tracking-widest hover:underline"

@@ -3,7 +3,7 @@ import { Send, FileText, Paperclip, X, Loader2 } from "lucide-react";
 import clinicService from "../services/clinicService";
 import { useSocket } from "../../../context/SocketContext";
 import toast from "react-hot-toast";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 
 const ClinicalMessaging = ({ appointmentId, patientName, onClose }) => {
     const [message, setMessage] = useState("");
@@ -216,7 +216,7 @@ const ClinicalMessaging = ({ appointmentId, patientName, onClose }) => {
                                             {msg.attachments.map((at, i) => (
                                                 <a
                                                     key={i}
-                                                    href={`${BASE_URL}${at.url}`}
+                                                    href={getAssetUrl(at.url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className={`flex items-center space-x-2 p-2 rounded-xl border ${msg.sender === 'CLINIC'

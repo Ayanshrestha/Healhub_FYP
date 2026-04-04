@@ -22,7 +22,7 @@ import {
     Activity,
     CheckCircle2
 } from "lucide-react";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 import patientService from "../services/patientService";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
@@ -128,21 +128,30 @@ const ClinicProfile = () => {
                 <div className="h-72 relative">
                     {clinic.clinicImage && !heroError ? (
                         <img
-                            src={`${BASE_URL}${clinic.clinicImage}`}
-                            alt="Clinic Banner"
+                            src={getAssetUrl(clinic.clinicImage)}
+                            alt={clinic.clinicName}
                             className="w-full h-full object-cover"
-                            onError={() => setHeroError(true)}
+                            onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80";
+                            }}
                         />
                     ) : null}
-                    {(heroError || !clinic.clinicImage) && (
-                        <img
-                            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=2000"
-                            alt="Clinic Banner Fallback"
-                            className="w-full h-full object-cover"
-                        />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                </div>
 
+                {/* Clinic Logo */}
+                <div className="absolute -bottom-16 left-8">
+                    <div className="w-32 h-32 bg-white rounded-3xl p-2 shadow-2xl border-4 border-white overflow-hidden">
+                        <img
+                            src={getAssetUrl(clinic.clinicLogo)}
+                            alt="Logo"
+                            className="w-full h-full object-cover rounded-2xl"
+                            onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
+                        />
+                    </div>
+                </div>
+
+                <div className="px-10 pb-12 relative">
                     {/* Floating Badges */}
                     <div className="absolute top-8 right-8 flex flex-col items-end gap-3">
                         <div className="bg-white/95 backdrop-blur-md px-5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 border border-white">

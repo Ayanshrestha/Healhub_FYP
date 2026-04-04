@@ -13,7 +13,7 @@ import {
     Activity
 } from "lucide-react";
 import patientService from "../services/patientService";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 
 const PatientReports = () => {
     const [reports, setReports] = useState([]);
@@ -21,7 +21,7 @@ const PatientReports = () => {
 
     const handleDownload = (url, name) => {
         const link = document.createElement("a");
-        link.href = `${BASE_URL}${url}`;
+        link.href = getAssetUrl(url);
         link.target = "_blank";
         link.download = name;
         document.body.appendChild(link);

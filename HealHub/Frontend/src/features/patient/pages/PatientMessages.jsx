@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import io from "socket.io-client";
 import patientService from "../services/patientService";
-import { BASE_URL, SOCKET_URL } from "../../../services/api";
+import { BASE_URL, SOCKET_URL, getAssetUrl } from "../../../services/api";
 
 const groupMessagesByDate = (messages) => {
     const groups = {};
@@ -250,7 +250,7 @@ const PatientMessages = () => {
                                             {msg.attachments?.map((att, index) => (
                                                 <a
                                                     key={index}
-                                                    href={`${BASE_URL}${att.url}`}
+                                                    href={getAssetUrl(att.url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className={`mt-4 p-4 rounded-2xl flex items-center gap-4 transition-all hover:scale-[1.02] ${isPatient ? "bg-white/10 text-white" : "bg-slate-50 text-slate-700 hover:bg-teal-50"}`}
