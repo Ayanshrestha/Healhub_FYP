@@ -31,6 +31,7 @@ const PatientDashboard = () => {
     const [appointments, setAppointments] = useState([]);
     const [reminders, setReminders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(new Date());
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -92,6 +93,13 @@ const PatientDashboard = () => {
 
     const handlePrevMonth = () => setViewDate(new Date(year, month - 1));
     const handleNextMonth = () => setViewDate(new Date(year, month + 1));
+
+    const selectedDateAppointments = upcomingAppointments.filter(a => {
+        const d = new Date(a.appointmentDate);
+        return d.getDate() === selectedDate.getDate() && 
+               d.getMonth() === selectedDate.getMonth() && 
+               d.getFullYear() === selectedDate.getFullYear();
+    });
 
     if (loading) {
         return (
@@ -170,22 +178,29 @@ const PatientDashboard = () => {
                             {/* Actual Days */}
                             {Array.from({ length: totalDays }).map((_, i) => {
                                 const day = i + 1;
+                                const date = new Date(year, month, day);
                                 const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                                const isSelected = day === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear();
                                 const hasAppointment = upcomingAppointments.some(a => {
                                     const d = new Date(a.appointmentDate);
                                     return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
                                 });
 
                                 return (
-                                    <div key={day} className={`
+                                    <div 
+                                        key={day} 
+                                        onClick={() => setSelectedDate(date)}
+                                        className={`
                                         aspect-square flex flex-col items-center justify-center rounded-xl lg:rounded-2xl text-xs lg:text-sm font-bold transition-all cursor-pointer relative group
-                                        ${isToday
-                                            ? "bg-gradient-to-br from-teal-500 to-emerald-500 text-white shadow-lg shadow-teal-100 scale-105"
-                                            : "text-slate-600 hover:bg-teal-50 hover:text-teal-600 border border-transparent hover:border-teal-100"}
+                                        ${isSelected
+                                            ? "bg-teal-600 text-white shadow-lg shadow-teal-100 scale-105"
+                                            : isToday
+                                                ? "bg-teal-50 text-teal-600 border border-teal-200"
+                                                : "text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-100"}
                                     `}>
                                         <span>{day}</span>
                                         {hasAppointment && (
-                                            <span className={`absolute bottom-1.5 lg:bottom-2 w-1 lg:h-1.5 w-1 lg:w-1.5 rounded-full ${isToday ? "bg-white" : "bg-teal-500"}`}></span>
+                                            <span className={`absolute bottom-1.5 lg:bottom-2 w-1 lg:h-1.5 w-1 lg:w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-teal-500"}`}></span>
                                         )}
                                     </div>
                                 );
@@ -196,7 +211,9 @@ const PatientDashboard = () => {
                     {/* Upcoming List */}
                     <div className="bg-white rounded-2xl lg:rounded-[2rem] p-6 lg:p-8 border border-slate-100 shadow-sm">
                         <div className="flex items-center justify-between mb-6 lg:mb-8">
-                            <h3 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight">Upcoming Visits</h3>
+                            <h3 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight">
+                                {selectedDate.toDateString() === today.toDateString() ? "Visits for Today" : `Visits for ${selectedDate.toLocaleDateString()}`}
+                            </h3>
                             <button 
                                 onClick={() => navigate("/patient/appointments")}
                                 className="text-teal-600 hover:text-emerald-700 font-bold text-xs lg:text-sm flex items-center space-x-1 group"
@@ -206,9 +223,9 @@ const PatientDashboard = () => {
                             </button>
                         </div>
 
-                        {upcomingAppointments.length > 0 ? (
+                        {selectedDateAppointments.length > 0 ? (
                             <div className="space-y-4">
-                                {upcomingAppointments.slice(0, 3).map((app) => (
+                                {selectedDateAppointments.map((app) => (
                                     <div key={app._id} className="group flex items-center p-4 lg:p-5 rounded-2xl lg:rounded-[1.5rem] border border-slate-50 hover:border-teal-100 hover:bg-teal-50/30 transition-all duration-300">
                                         <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl lg:rounded-2xl overflow-hidden bg-slate-100 border-2 border-white shadow-sm mr-4 lg:mr-5 group-hover:scale-110 transition-transform">
                                             <img src={app.doctorId?.profilePhoto || "https://ui-avatars.com/api/?name=Doctor&background=0D9488&color=fff"} className="w-full h-full object-cover" alt="Doctor" />
