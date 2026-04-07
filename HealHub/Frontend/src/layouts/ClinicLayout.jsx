@@ -8,7 +8,7 @@ const ClinicLayout = ({ children, status }) => {
     const isInactive = currentStatus === "INACTIVE" || currentStatus === "APPROVED_UNPAID";
 
     return (
-        <div className="min-h-screen bg-slate-50 font-primary">
+        <div className="min-h-screen bg-slate-50 font-primary flex flex-col">
             <ClinicNavbar />
 
             {isExpiring && (
