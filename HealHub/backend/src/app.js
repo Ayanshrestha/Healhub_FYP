@@ -41,25 +41,36 @@ dotenv.config();
 const app = express();
 
 // Middleware
-const allowedOrigins = [
+const rawAllowedOrigins = [
   process.env.APP_URL,
   "http://localhost:3000",
   "http://localhost:5173",
   "https://healhub-frontend-5k65.onrender.com",
-].filter(Boolean);
+];
+
+// Sanitize origins: remove trailing slashes and filter empties
+const allowedOrigins = rawAllowedOrigins
+  .filter(Boolean)
+  .map(url => url.replace(/\/$/, ""));
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g., mobile apps, Postman, curl)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // If no origin (like mobile apps or curl), allow it
+    if (!origin) return callback(null, true);
+    
+    // Sanitize incoming origin
+    const sanitizedOrigin = origin.replace(/\/$/, "");
+    
+    if (allowedOrigins.includes(sanitizedOrigin)) {
       callback(null, true);
     } else {
+      console.error(`❌ CORS BLOCKED: Origin '${origin}' not in allowed list:`, allowedOrigins);
       callback(new Error(`CORS: Origin '${origin}' not allowed`));
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 }));
 app.use(express.json());
 
