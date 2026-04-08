@@ -1,6 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 
 // CRITICAL: Load env vars FIRST before any other imports that may use process.env
 dotenv.config();
@@ -41,26 +40,29 @@ import medicineRoutes from "./routes/medicineRoutes.js";
 
 const app = express();
 
-// --- CORS Configuration ---
-const corsOptions = {
-  origin: [
-    process.env.APP_URL,
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://healhub-frontend-5k65.onrender.com"
-  ].filter(Boolean),
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-};
+// --- CORS: Raw middleware (Express 5 compatible, no path-to-regexp involved) ---
+const ALLOWED_ORIGINS = [
+  process.env.APP_URL,
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://healhub-frontend-5k65.onrender.com",
+].filter(Boolean);
 
-// Handle preflight OPTIONS requests — use regex wildcard (compatible with path-to-regexp v8+)
-app.options(/\/.*/, cors(corsOptions));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept");
 
-// Apply CORS to all routes
-app.use(cors(corsOptions));
+  // Respond immediately to preflight OPTIONS requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Request Logger: See what's hitting the backend
 app.use((req, res, next) => {
