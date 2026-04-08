@@ -47,7 +47,7 @@ app.use(cors({
     "http://localhost:3000",
     "http://localhost:5173",
     "https://healhub-frontend-5k65.onrender.com"
-  ],
+  ].filter(Boolean),
   credentials: true,
 }));
 app.use(express.json());

@@ -10,7 +10,7 @@ export const initSocket = (server) => {
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "https://healhub-frontend-5k65.onrender.com"
-            ],
+            ].filter(Boolean),
             methods: ["GET", "POST"],
             credentials: true,
         },
