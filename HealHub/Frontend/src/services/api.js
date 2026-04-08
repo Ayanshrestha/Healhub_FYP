@@ -18,7 +18,7 @@ export const getAssetUrl = (path) => {
 const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true, // Required for HttpOnly cookies if used
-    timeout: 15000, // 15s timeout to prevent infinite loading
+    timeout: 60000, // 60s timeout to handle Render Free Tier cold starts (takes ~50 sec to wake up)
 });
 
 // Request Interceptor: Attach Token dynamically
