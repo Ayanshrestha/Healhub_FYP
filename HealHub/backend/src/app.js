@@ -49,7 +49,15 @@ app.use(cors({
     "https://healhub-frontend-5k65.onrender.com"
   ].filter(Boolean),
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
 }));
+
+// Request Logger: See what's hitting the backend
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+  next();
+});
 app.use(express.json());
 
 // Serve static uploads
