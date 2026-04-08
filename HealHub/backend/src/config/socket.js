@@ -5,7 +5,12 @@ let io;
 export const initSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: [process.env.APP_URL, "http://localhost:3000", "http://localhost:5173"],
+            origin: [
+                process.env.APP_URL,
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://healhub-frontend-5k65.onrender.com",
+            ].filter(Boolean),
             methods: ["GET", "POST"],
             credentials: true,
         },
