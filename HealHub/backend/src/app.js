@@ -2,6 +2,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 
+// CRITICAL: Load env vars FIRST before any other imports that may use process.env
+dotenv.config();
+
 // --- Route Imports ---
 
 // Admin Domain
@@ -35,8 +38,6 @@ import providerRoutes from "./routes/provider/providerRoutes.js";
 // Payment Domain
 import paymentRoutes from "./routes/payment/paymentRoutes.js";
 import medicineRoutes from "./routes/medicineRoutes.js";
-
-dotenv.config();
 
 const app = express();
 
