@@ -35,12 +35,12 @@ const ClinicLayout = ({ children, status }) => {
                 </div>
             )}
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
+            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 animate-fadeIn">
                 {children}
             </main>
 
             <footer className="bg-white/50 border-t border-gray-100 py-8 mt-auto">
-                <div className="max-w-7xl mx-auto px-4 text-center">
+                <div className="max-w-[1600px] mx-auto px-4 text-center">
                     <p className="text-gray-500 text-xs font-semibold">
                         © {new Date().getFullYear()} HealHub Healthcare Systems. Clinic Portal.
                     </p>
