@@ -13,7 +13,7 @@ const ClinicLayout = ({ children, status }) => {
 
             {isExpiring && (
                 <div className="bg-amber-50 border-b border-amber-100 px-4 py-3">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between text-amber-800 text-sm font-medium">
+                    <div className="w-full flex items-center justify-between text-amber-800 text-sm font-medium">
                         <div className="flex items-center space-x-2">
                             <AlertCircle className="w-5 h-5" />
                             <span>Your subscription expires in 3 days. Renew now to avoid service interruption.</span>
@@ -25,7 +25,7 @@ const ClinicLayout = ({ children, status }) => {
 
             {isInactive && (
                 <div className="bg-red-50 border-b border-red-100 px-4 py-3">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between text-red-800 text-sm font-medium">
+                    <div className="w-full flex items-center justify-between text-red-800 text-sm font-medium">
                         <div className="flex items-center space-x-2">
                             <AlertCircle className="w-5 h-5" />
                             <span>Subscription Inactive. Dashboard access is limited.</span>
@@ -35,12 +35,12 @@ const ClinicLayout = ({ children, status }) => {
                 </div>
             )}
 
-            <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-8 animate-fadeIn">
+            <main className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-8 animate-fadeIn">
                 {children}
             </main>
 
             <footer className="bg-white/50 border-t border-gray-100 py-8 mt-auto">
-                <div className="max-w-[1600px] mx-auto px-4 text-center">
+                <div className="w-full px-4 text-center">
                     <p className="text-gray-500 text-xs font-semibold">
                         © {new Date().getFullYear()} HealHub Healthcare Systems. Clinic Portal.
                     </p>
