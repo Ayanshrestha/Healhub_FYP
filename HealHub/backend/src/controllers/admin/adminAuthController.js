@@ -1,6 +1,7 @@
 import * as adminAuthService from "../../services/admin/adminAuthService.js";
 import AuditLog from "../../models/auditLog.js";
 import { createJwt } from "../../utils/jwt.js";
+import User from "../../models/user.js";
 
 /**
  * Admin Login Controller
