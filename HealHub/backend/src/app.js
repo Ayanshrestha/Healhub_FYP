@@ -52,10 +52,12 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
-// Handle preflight OPTIONS requests explicitly — MUST be before all routes
-app.options("*", cors(corsOptions));
+// Handle preflight OPTIONS requests — use regex wildcard (compatible with path-to-regexp v8+)
+app.options(/\/.*/, cors(corsOptions));
 
 // Apply CORS to all routes
 app.use(cors(corsOptions));
