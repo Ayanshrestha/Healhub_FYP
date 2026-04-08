@@ -41,8 +41,8 @@ import medicineRoutes from "./routes/medicineRoutes.js";
 
 const app = express();
 
-// Middleware
-app.use(cors({
+// --- CORS Configuration ---
+const corsOptions = {
   origin: [
     process.env.APP_URL,
     "http://localhost:3000",
@@ -52,7 +52,13 @@ app.use(cors({
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-}));
+};
+
+// Handle preflight OPTIONS requests explicitly — MUST be before all routes
+app.options("*", cors(corsOptions));
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
 
 // Request Logger: See what's hitting the backend
 app.use((req, res, next) => {
