@@ -108,9 +108,9 @@ const MyAppointments = () => {
                                     <Clock className="w-3.5 h-3.5 mr-2 text-teal-500" />
                                     {app.timeSlot}
                                 </div>
-                                <div className="flex items-center bg-slate-50 px-3 py-1.5 rounded-xl">
-                                    <MapPin className="w-3.5 h-3.5 mr-2 text-teal-500" />
-                                    {app.consultationType}
+                                <div className={`flex items-center px-3 py-1.5 rounded-xl ${app.appointmentType === 'HOME_VISIT' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'}`}>
+                                    {app.appointmentType === 'HOME_VISIT' ? <Home className="w-3.5 h-3.5 mr-2" /> : <MapPin className="w-3.5 h-3.5 mr-2 text-teal-500" />}
+                                    {String(app.appointmentType || 'Clinic Visit').replace('_', ' ')}
                                 </div>
                             </div>
                         </div>

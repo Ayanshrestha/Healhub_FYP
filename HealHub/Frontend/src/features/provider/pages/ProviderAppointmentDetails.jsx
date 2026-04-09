@@ -187,7 +187,7 @@ const ProviderAppointmentDetails = () => {
                     <div className="bg-purple-50/50 p-5 rounded-3xl border border-purple-100">
                         <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest mb-2">Type & Status</h4>
                         <div className="font-black text-gray-900 flex items-center gap-2">
-                            {appointment.appointmentType === 'HOME_VISIT' ? <Home className="w-4 h-4 text-purple-500" /> : <Video className="w-4 h-4 text-purple-500" />}
+                            {appointment.appointmentType === 'HOME_VISIT' ? <Home className="w-4 h-4 text-purple-500" /> : <MapPin className="w-4 h-4 text-purple-500" />}
                             <span>{String(appointment.appointmentType || "").replace('_', ' ')}</span>
                         </div>
                         <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${appointment.status === 'Approved' ? 'bg-blue-50 text-blue-600 border-blue-100' :
@@ -199,6 +199,20 @@ const ProviderAppointmentDetails = () => {
                         </span>
                     </div>
                 </div>
+
+                {/* Home Visit Address */}
+                {appointment.appointmentType === 'HOME_VISIT' && (
+                    <div className="bg-amber-50 border-2 border-amber-100 p-6 rounded-3xl animate-pulse ring-4 ring-amber-50/50">
+                        <h3 className="text-sm font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            <span>Destination Address (Home Visit)</span>
+                        </h3>
+                        <p className="text-gray-900 font-black text-lg leading-relaxed italic">
+                            {appointment.homeAddress || "No address provided."}
+                        </p>
+                        <p className="text-[10px] text-amber-600 font-bold uppercase mt-2 tracking-tighter">Please ensure you have established contact with the patient before traveling.</p>
+                    </div>
+                )}
 
                 {/* Medical Reason */}
                 <div className="bg-white border-2 border-slate-50 p-6 rounded-3xl">

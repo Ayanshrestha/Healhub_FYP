@@ -40,6 +40,8 @@ const BookingFlow = () => {
     const [phone, setPhone] = useState("");
     const [otp, setOtp] = useState("");
     const [isOtpSent, setIsOtpSent] = useState(false);
+    const [visitType, setVisitType] = useState("CLINIC_VISIT");
+    const [homeAddress, setHomeAddress] = useState("");
 
     useEffect(() => {
         const initBooking = async () => {
@@ -91,6 +93,9 @@ const BookingFlow = () => {
         if (!selectedSlot) {
             return toast.error("Please select a time slot");
         }
+        if (visitType === "HOME_VISIT" && (!homeAddress || homeAddress.trim() === "")) {
+            return toast.error("Please provide your full home address for the visit");
+        }
         if (selectedDate && selectedSlot) setStep(3);
     };
 
@@ -131,6 +136,8 @@ const BookingFlow = () => {
                 timeSlot: selectedSlot,
                 phone,
                 otp,
+                visitType,
+                homeAddress: visitType === "HOME_VISIT" ? homeAddress : undefined,
                 paymentOption: paymentMethod
             };
 
@@ -270,6 +277,45 @@ const BookingFlow = () => {
                                     )) : (
                                         <p className="col-span-full text-center text-slate-400 font-bold text-sm">No slots available for this date.</p>
                                     )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {selectedSlot && (
+                        <div className="animate-fadeIn pt-4">
+                            <h3 className="text-2xl font-black text-slate-800 mb-6 italic uppercase tracking-tight italic">Visit Type</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div
+                                    onClick={() => setVisitType("CLINIC_VISIT")}
+                                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${visitType === 'CLINIC_VISIT' ? 'border-teal-500 bg-teal-50' : 'border-slate-100 bg-white hover:border-teal-200'}`}
+                                >
+                                    <h4 className="font-black text-slate-800 text-lg">🏥 At Clinic</h4>
+                                    <p className="text-slate-500 text-sm font-bold mt-1">Visit the facility</p>
+                                </div>
+                                <div
+                                    onClick={() => setVisitType("HOME_VISIT")}
+                                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all ${visitType === 'HOME_VISIT' ? 'border-teal-500 bg-teal-50' : 'border-slate-100 bg-white hover:border-teal-200'}`}
+                                >
+                                    <h4 className="font-black text-slate-800 text-lg">🏠 At Home</h4>
+                                    <p className="text-teal-600 text-sm font-black mt-1">+ Rs. 500 Travel Surcharge</p>
+                                </div>
+                            </div>
+
+                            {visitType === "HOME_VISIT" && (
+                                <div className="space-y-4 animate-slideIn bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Delivery Address & Landmark</label>
+                                        <div className="relative">
+                                            <MapPin className="absolute left-4 top-4 w-5 h-5 text-slate-300" />
+                                            <textarea
+                                                value={homeAddress}
+                                                onChange={(e) => setHomeAddress(e.target.value)}
+                                                placeholder="e.g. House 14, Near Nabil Bank, Pulchowk"
+                                                className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-bold resize-none h-24"
+                                            ></textarea>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

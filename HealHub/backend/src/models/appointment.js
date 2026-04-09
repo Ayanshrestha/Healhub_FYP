@@ -43,6 +43,10 @@ const appointmentSchema = new mongoose.Schema(
             enum: ["CLINIC_VISIT", "HOME_VISIT"],
             default: "CLINIC_VISIT",
         },
+        homeAddress: {
+            type: String,
+            required: function() { return this.appointmentType === 'HOME_VISIT'; } // Only required if home visit
+        },
         paymentStatus: {
             type: String,
             enum: ["Pending", "Paid", "Refunded"],

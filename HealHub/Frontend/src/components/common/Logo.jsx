@@ -3,10 +3,10 @@ import { HeartPulse } from "lucide-react";
 /**
  * Standardized HealHub Logo Component (Portal-Matching Design)
  */
-const Logo = ({ 
-    className = "", 
-    showText = true, 
-    textClassName = "", 
+const Logo = ({
+    className = "",
+    showText = true,
+    textClassName = "",
     size = "md",
     label = "",
     customText = "HealHub"
@@ -24,7 +24,7 @@ const Logo = ({
             <div className={`${currentSize.container} bg-gradient-to-br from-teal-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 font-bold`}>
                 <HeartPulse className={`${currentSize.icon} text-white`} />
             </div>
-            
+
             {showText && (
                 <div className="flex flex-col">
                     <span className={`${currentSize.text} font-bold text-gray-900 tracking-tight transition-colors ${textClassName}`}>

@@ -99,11 +99,16 @@ export const createAppointment = async (userId, bookingData) => {
         visitType,
         paymentOption,
         phone,
-        otp
+        otp,
+        homeAddress
     } = bookingData;
 
     // 1. Verify OTP
     await verifyBookingOtp(phone, otp);
+
+    if (visitType === 'HOME_VISIT' && (!homeAddress || homeAddress.trim() === '')) {
+        throw new Error("Full address is required for home visits.");
+    }
 
     // 2. Validate Doctor & Affiliation
     const doctor = await Doctor.findById(doctorId);
@@ -155,8 +160,9 @@ export const createAppointment = async (userId, bookingData) => {
         timeSlot,
         status: "Pending",
         appointmentType: visitType || "CLINIC_VISIT",
+        homeAddress: visitType === 'HOME_VISIT' ? homeAddress : undefined,
         reason,
-        consultationFee: doctor.consultationFee || 0, // Capture fee at booking time
+        consultationFee: visitType === 'HOME_VISIT' ? (doctor.consultationFee || 0) + 500 : (doctor.consultationFee || 0), // Base fee + 500 surcharge
         paymentStatus: "Pending", // Initial status
         paymentOption: paymentOption || "Clinic"
     });

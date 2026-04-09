@@ -213,11 +213,11 @@ const PatientAppointmentDetails = () => {
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Session Type</p>
                                 <p className="text-slate-800 font-black text-lg flex items-center gap-2">
-                                    {appointment.consultationType === 'Video' ? <Video className="w-5 h-5 text-purple-500" /> : <Home className="w-5 h-5 text-sky-500" />}
-                                    {appointment.consultationType}
-                                </p>
-                                <p className="text-slate-400 font-bold text-sm">{appointment.appointmentType === 'HOME_VISIT' ? 'At your location' : 'Online / Clinic'}</p>
-                            </div>
+                            {appointment.appointmentType === 'HOME_VISIT' ? <Home className="w-5 h-5 text-sky-500" /> : <MapPin className="w-5 h-5 text-sky-500" />}
+                            {String(appointment.appointmentType || 'Clinic Visit').replace('_', ' ')}
+                        </p>
+                        <p className="text-slate-400 font-bold text-sm">{appointment.appointmentType === 'HOME_VISIT' ? 'At your provided destination' : 'At the specialized clinic'}</p>
+                    </div>
                         </div>
                     </div>
 
@@ -227,10 +227,10 @@ const PatientAppointmentDetails = () => {
                         <h3 className="text-[10px] font-black text-teal-400 uppercase tracking-widest mb-6 relative z-10">Care Location</h3>
                         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
-                                <h4 className="text-2xl font-black tracking-tight italic uppercase mb-2">{appointment.clinicId?.clinicName}</h4>
+                                <h4 className="text-2xl font-black tracking-tight italic uppercase mb-2">{appointment.appointmentType === 'HOME_VISIT' ? 'Your Home Address' : appointment.clinicId?.clinicName}</h4>
                                 <div className="flex items-center gap-2 text-slate-400 font-bold text-sm">
                                     <MapPin className="w-4 h-4 text-teal-500" />
-                                    {appointment.clinicId?.address}
+                                    {appointment.appointmentType === 'HOME_VISIT' ? (appointment.homeAddress || "No address provided.") : appointment.clinicId?.address}
                                 </div>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-5 rounded-3xl">
@@ -265,7 +265,7 @@ const PatientAppointmentDetails = () => {
 
                         <div className="flex justify-between items-center pt-2">
                             <span className="text-slate-800 font-black text-xl italic uppercase tracking-tighter">Total Fee</span>
-                            <span className="text-2xl font-black text-teal-600">Rs. {appointment.providerId?.consultationFee || 500}</span>
+                            <span className="text-2xl font-black text-teal-600">Rs. {appointment.consultationFee || appointment.providerId?.consultationFee || 500}</span>
                         </div>
 
                         {isAwaitingPayment ? (
