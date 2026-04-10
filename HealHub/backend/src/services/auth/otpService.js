@@ -2,6 +2,8 @@ import Otp from "../../models/otp.js";
 import sendEmail from "../../utils/sendEmail.js";
 import { sendSMS } from "../../utils/sendSMS.js";
 
+import { getOTPTemplate } from "../common/emailService.js";
+
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
 };
@@ -30,8 +32,8 @@ export const sendOtp = async ({ email: rawEmail, phone: rawPhone }) => {
         const emailResult = await sendEmail({
             to: email,
             subject: "Your HealHub Verification Code",
-            html: `<h2>Your OTP is: ${otp}</h2>`,
-            text: `Your OTP is ${otp}. It expires in 5 minutes.`,
+            html: getOTPTemplate(otp),
+            text: `Your OTP code is ${otp}. It expires in 5 minutes.`,
         });
 
         if (!emailResult.success) {

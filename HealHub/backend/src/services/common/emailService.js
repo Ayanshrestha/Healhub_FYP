@@ -438,3 +438,34 @@ export const getProviderBookingNotificationTemplate = (data) => {
     </div>
   `;
 };
+/**
+ * OTP Verification Template
+ */
+export const getOTPTemplate = (otp) => {
+  return `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.08); background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #0d9488 0%, #065f46 100%); padding: 40px 20px; text-align: center; color: white;">
+        <div style="background: rgba(255,255,255,0.2); width: 60px; height: 60px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+          <span style="font-size: 30px;">🛡️</span>
+        </div>
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Verification Required</h1>
+        <p style="margin: 10px 0 0; opacity: 0.9; font-size: 14px; font-weight: 500;">HealHub Secure Authentication</p>
+      </div>
+      
+      <div style="padding: 40px 30px; text-align: center; color: #1f2937;">
+        <p style="margin: 0 0 25px; font-size: 15px; color: #4b5563; line-height: 1.5;">Hello,</p>
+        <p style="margin: 0 0 35px; font-size: 15px; color: #4b5563; line-height: 1.5;">To continue with your request, please use the following one-time password (OTP). <strong>This code will expire in 5 minutes.</strong></p>
+        
+        <div style="background-color: #f0fdfa; border: 2px dashed #0d9488; padding: 25px; border-radius: 16px; margin-bottom: 35px;">
+          <span style="font-size: 36px; font-family: 'Courier New', Courier, monospace; font-weight: 900; letter-spacing: 8px; color: #0d9488;">${otp}</span>
+        </div>
+        
+        <p style="margin: 0; font-size: 13px; color: #9ca3af;">If you did not request this code, please secure your account or ignore this email.</p>
+      </div>
+      
+      <div style="background-color: #f9fafb; padding: 25px; text-align: center; color: #9ca3af; font-size: 11px; border-top: 1px solid #f3f4f6;">
+        <p style="margin: 0;">© ${new Date().getFullYear()} HealHub. All rights reserved.<br>Ensuring secure healthcare management.</p>
+      </div>
+    </div>
+  `;
+};
