@@ -98,14 +98,10 @@ export const createAppointment = async (userId, bookingData) => {
         reason,
         visitType,
         paymentOption,
-        phone,
-        otp,
         homeAddress
     } = bookingData;
 
-    // 1. Verify OTP
-    await verifyBookingOtp(phone, otp);
-
+    // OTP verification removed for streamlined booking flow
     if (visitType === 'HOME_VISIT' && (!homeAddress || homeAddress.trim() === '')) {
         throw new Error("Full address is required for home visits.");
     }
