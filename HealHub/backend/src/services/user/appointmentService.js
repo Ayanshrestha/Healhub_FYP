@@ -20,10 +20,9 @@ export const getDoctorAvailability = async (doctorId, dateString) => {
     if (!doctor) throw new Error("Doctor not found");
 
     let availability = doctor.availability?.get(dayName);
-
-    // Fallback for manually created doctors who haven't set specific availability yet
-    // Default: Open 10:00 AM - 5:00 PM everyday
-    if (!availability && (!doctor.availability || doctor.availability.size === 0)) {
+    
+    // Fallback: If no specific hours are set for THIS day, use default slots
+    if (!availability) {
         availability = {
             isClosed: false,
             slots: [
