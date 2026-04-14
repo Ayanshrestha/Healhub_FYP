@@ -24,7 +24,7 @@ const BookingFlow = () => {
     const navigate = useNavigate();
 
     // Step state
-    const [step, setStep] = useState(1); // 1: Doctor, 2: Slots, 3: OTP/Details, 4: Payment, 5: Success
+    const [step, setStep] = useState(1); // 1: Doctor, 2: Slots, 3: Confirm, 4: Success
 
     // Data state
     const [clinic, setClinic] = useState(null);
@@ -37,9 +37,6 @@ const BookingFlow = () => {
     const [selectedDoctor, setSelectedDoctor] = useState(null);
     const [selectedDate, setSelectedDate] = useState("");
     const [selectedSlot, setSelectedSlot] = useState("");
-    const [phone, setPhone] = useState("");
-    const [otp, setOtp] = useState("");
-    const [isOtpSent, setIsOtpSent] = useState(false);
     const [visitType, setVisitType] = useState("CLINIC_VISIT");
     const [homeAddress, setHomeAddress] = useState("");
 
@@ -99,34 +96,7 @@ const BookingFlow = () => {
         if (selectedDate && selectedSlot) setStep(3);
     };
 
-    const handleSendOtp = async () => {
-        setLoading(true);
-        try {
-            await patientService.sendOtp(phone);
-            toast.success("OTP sent to your phone");
-            setIsOtpSent(true);
-        } catch (error) {
-            console.error("OTP send error:", error);
-            toast.error(error.response?.data?.message || "Failed to send OTP.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        setLoading(true);
-        try {
-            await patientService.verifyOtp(phone, otp, false);
-            await handleBookingFinalize("Clinic");
-        } catch (error) {
-            console.error("OTP verify error:", error);
-            toast.error(error.response?.data?.message || "Invalid OTP or expired.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleBookingFinalize = async (paymentMethod) => {
+    const handleBookingFinalize = async () => {
         setLoading(true);
         try {
             const bookingData = {
@@ -134,15 +104,13 @@ const BookingFlow = () => {
                 doctorId: selectedDoctor._id,
                 appointmentDate: selectedDate,
                 timeSlot: selectedSlot,
-                phone,
-                otp,
                 visitType,
                 homeAddress: visitType === "HOME_VISIT" ? homeAddress : undefined,
-                paymentOption: paymentMethod
+                paymentOption: "Clinic"
             };
 
             await patientService.bookAppointment(bookingData);
-            setStep(5);
+            setStep(4);
             toast.success("Appointment request submitted successfully!");
         } catch (error) {
             console.error("Booking error:", error);
@@ -331,70 +299,51 @@ const BookingFlow = () => {
                 </div>
             )}
 
-            {/* Step 3: OTP & Personal Details */}
+            {/* Step 3: Booking Confirmation */}
             {step === 3 && (
                 <div className="space-y-10 animate-slideIn max-w-xl mx-auto">
                     <button onClick={() => setStep(2)} className="flex items-center text-slate-400 font-bold text-xs uppercase tracking-widest italic"><ArrowLeft className="w-4 h-4 mr-2" /> Back</button>
 
                     <div className="text-center">
-                        <h2 className="text-3xl font-black text-slate-800 italic">Verification</h2>
-                        <p className="text-slate-400 font-medium mt-2">Confirm your phone number to finalize your request</p>
+                        <h2 className="text-3xl font-black text-slate-800 italic">Confirm Booking</h2>
+                        <p className="text-slate-400 font-medium mt-2">Review your appointment details before submitting</p>
                     </div>
 
-                    {!isOtpSent ? (
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-                                    <input
-                                        type="tel"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="98XXXXXXXX"
-                                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-bold"
-                                    />
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleSendOtp}
-                                disabled={phone.length < 10 || loading}
-                                className="w-full py-4 bg-teal-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-700 transition-all disabled:opacity-50 shadow-lg shadow-teal-100"
-                            >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Send OTP Code"}
-                            </button>
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-5">
+                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Doctor</span>
+                            <span className="font-black text-slate-800">{selectedDoctor?.fullName}</span>
                         </div>
-                    ) : (
-                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-                            <div className="flex items-center justify-between bg-teal-50 p-4 rounded-2xl border border-teal-100">
-                                <span className="text-teal-600 font-bold text-sm">OTP sent to {phone}</span>
-                                <button onClick={() => setIsOtpSent(false)} className="text-[10px] font-black text-teal-600 uppercase underline">Change</button>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Enter 6-Digit Code</label>
-                                <input
-                                    type="text"
-                                    maxLength={6}
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    placeholder="XXXXXX"
-                                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all font-black text-center text-4xl tracking-[1rem]"
-                                />
-                            </div>
-                            <button
-                                onClick={handleVerifyOtp}
-                                disabled={otp.length < 6 || loading}
-                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 transition-all disabled:opacity-50 shadow-xl"
-                            >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Verify & Finalize Request"}
-                            </button>
+                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</span>
+                            <span className="font-black text-slate-800">{selectedDate}</span>
                         </div>
-                    )}
+                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</span>
+                            <span className="font-black text-slate-800">{selectedSlot}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-3 border-b border-slate-50">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Visit Type</span>
+                            <span className="font-black text-slate-800">{visitType === 'HOME_VISIT' ? '🏠 Home Visit (+Rs. 500)' : '🏥 Clinic Visit'}</span>
+                        </div>
+                        <div className="flex justify-between items-center py-3">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fee</span>
+                            <span className="font-black text-teal-600">Rs. {visitType === 'HOME_VISIT' ? (selectedDoctor?.consultationFee || 0) + 500 : (selectedDoctor?.consultationFee || 0)}</span>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={handleBookingFinalize}
+                        disabled={loading}
+                        className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-teal-600 disabled:opacity-30 disabled:pointer-events-none transition-all shadow-xl"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Confirm & Submit Request"}
+                    </button>
                 </div>
             )}
 
-            {/* Step 5: Success Screen */}
-            {step === 5 && (
+            {/* Step 4: Success Screen */}
+            {step === 4 && (
                 <div className="py-20 text-center animate-scaleIn">
                     <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
                         <CheckCircle2 className="w-12 h-12 text-emerald-600" />
