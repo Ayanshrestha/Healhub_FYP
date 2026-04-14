@@ -203,7 +203,8 @@ const BookingFlow = () => {
                         <h3 className="text-2xl font-black text-slate-800 mb-6 italic uppercase tracking-tight italic">Choose Date</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                             {availableDates.map((date) => {
-                                const d = new Date(date);
+                                const [year, month, day] = date.split("-").map(Number);
+                                const d = new Date(year, month - 1, day); // local time, no UTC shift
                                 const isSelected = selectedDate === date;
                                 return (
                                     <div
