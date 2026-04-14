@@ -5,12 +5,20 @@ import Doctor from "../../models/doctor.js";
 /**
  * List all verified (ACTIVE) clinics with summarized data
  */
-export const listVerifiedClinics = async () => {
-    // Show ACTIVE clinics, but also include PENDING ones for development visibility if needed
-    // or just all verified ones. Switching to a broader set for "Registered" clinics.
-    const clinics = await Clinic.find({
+export const listVerifiedClinics = async (filters = {}) => {
+    const { location } = filters;
+
+    // Build query: always filter by status, optionally filter by location (address)
+    const query = {
         status: { $in: ["ACTIVE", "APPROVED_UNPAID", "PENDING_APPROVAL"] }
-    })
+    };
+
+    // If location is provided, apply a case-insensitive partial match on the address field
+    if (location && location.trim() !== "") {
+        query.address = { $regex: location.trim(), $options: "i" };
+    }
+
+    const clinics = await Clinic.find(query)
         .select("clinicName address status specializations description clinicImage clinicLogo")
         .lean();
 

@@ -2,7 +2,8 @@ import * as clinicDiscoveryService from "../../services/user/clinicDiscoveryServ
 
 export const getClinics = async (req, res) => {
     try {
-        const clinics = await clinicDiscoveryService.listVerifiedClinics();
+        const { location } = req.query;
+        const clinics = await clinicDiscoveryService.listVerifiedClinics({ location });
         res.status(200).json({
             success: true,
             data: clinics
