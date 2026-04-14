@@ -11,7 +11,8 @@ import {
     CheckCircle,
     MessageCircle,
     MoreVertical,
-    CreditCard
+    CreditCard,
+    Home
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
