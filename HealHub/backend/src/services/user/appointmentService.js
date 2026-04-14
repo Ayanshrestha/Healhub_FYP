@@ -100,6 +100,15 @@ export const createAppointment = async (userId, bookingData) => {
         homeAddress
     } = bookingData;
 
+    // 0. Prevent booking for past dates
+    const requestedDate = new Date(appointmentDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    if (requestedDate < today) {
+        throw new Error("Cannot book appointments for past dates.");
+    }
+
     // OTP verification removed for streamlined booking flow
     if (visitType === 'HOME_VISIT' && (!homeAddress || homeAddress.trim() === '')) {
         throw new Error("Full address is required for home visits.");
