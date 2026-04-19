@@ -115,7 +115,10 @@ const ProviderMessages = () => {
         const fetchChats = async () => {
             try {
                 setLoading(true);
-                const res = await providerService.getAppointments();
+                // Pass a large limit so ALL appointments are returned — the default
+                // limit=10 (ascending sort) would cut off newer appointments and break
+                // the grouping / latestAppointmentId calculation.
+                const res = await providerService.getAppointments({ limit: 1000 });
                 const appointments = res.appointments || [];
 
                 // Group by patient email → one sidebar entry per patient
@@ -173,28 +176,41 @@ const ProviderMessages = () => {
         const fetchChatHistory = async () => {
             try {
                 setChatLoading(true);
-                // Load history for the patient's most-recent appointment
-                const res = await providerService.getMessageHistory(
-                    selectedChat.latestAppointmentId
-                );
-                setMessages(res.history || res.messages || []);
 
-                // Join the socket room for the latest appointment
-                socket.current.emit(
-                    "join_chat",
-                    selectedChat.latestAppointmentId.toString()
+                // Fetch message history for ALL appointment IDs belonging to this patient
+                // in parallel, then merge and sort chronologically.
+                // This ensures messages sent from ANY of the patient's appointment threads
+                // are visible in the unified view — not just the latest one.
+                const results = await Promise.all(
+                    selectedChat.allAppointmentIds.map(id =>
+                        providerService.getMessageHistory(id)
+                            .then(res => res.history || res.messages || [])
+                            .catch(() => [])   // don't let one bad appt break the rest
+                    )
                 );
+                const merged = results
+                    .flat()
+                    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-                // Also join rooms for ALL other appointments of this patient
-                // so we never miss a real-time message on any thread
-                selectedChat.allAppointmentIds.forEach(id => {
-                    if (id.toString() !== selectedChat.latestAppointmentId.toString()) {
-                        socket.current.emit("join_chat", id.toString());
-                    }
+                // Deduplicate by _id (safety net)
+                const seen = new Set();
+                const deduped = merged.filter(m => {
+                    if (seen.has(m._id?.toString())) return false;
+                    seen.add(m._id?.toString());
+                    return true;
                 });
 
-                // Mark messages as read on the latest appointment
-                providerService.markMessagesRead(selectedChat.latestAppointmentId);
+                setMessages(deduped);
+
+                // Join socket rooms for ALL appointment IDs
+                selectedChat.allAppointmentIds.forEach(id => {
+                    socket.current.emit("join_chat", id.toString());
+                });
+
+                // Mark messages as read on all related appointments
+                selectedChat.allAppointmentIds.forEach(id => {
+                    providerService.markMessagesRead(id);
+                });
             } catch (err) {
                 console.error("Fetch chat history error:", err);
             } finally {
@@ -204,12 +220,18 @@ const ProviderMessages = () => {
         fetchChatHistory();
 
         // Real-time listener: append to messages if the incoming message belongs
-        // to ANY of this patient's appointment IDs.
+        // to ANY of this patient's appointment IDs, OR matches by patientId
+        // (covers the failsafe user-room emission path).
+        const selectedPatientId = selectedChat.patient?._id?.toString();
+
         const handleMessageForSelected = (msg) => {
-            const belongs = selectedChat.allAppointmentIds.some(
+            const apptMatch = selectedChat.allAppointmentIds.some(
                 id => id.toString() === msg.appointmentId?.toString()
             );
-            if (!belongs) return;
+            const patientMatch = selectedPatientId &&
+                msg.patientId?.toString() === selectedPatientId;
+
+            if (!apptMatch && !patientMatch) return;
 
             setMessages(prev => {
                 if (prev.some(m => m._id === msg._id)) return prev;
@@ -218,7 +240,10 @@ const ProviderMessages = () => {
                 }
                 return [...prev, msg];
             });
-            providerService.markMessagesRead(msg.appointmentId);
+
+            if (msg.appointmentId) {
+                providerService.markMessagesRead(msg.appointmentId);
+            }
         };
 
         socket.current.on("new_message", handleMessageForSelected);

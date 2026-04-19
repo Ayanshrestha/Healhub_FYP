@@ -65,39 +65,54 @@ const PatientMessages = () => {
                 setAppointment(appDetails);
                 setMessages(Array.isArray(msgData) ? msgData : []);
 
-                // Socket setup with credentials for cross-origin stability
-                socket.current = io(SOCKET_URL, { withCredentials: true });
-                
                 const user = JSON.parse(localStorage.getItem("user") || "{}");
-                
-                // Join ALL related appointment rooms for this patient-doctor/clinic pair
-                // Assuming we want to hear messages even if they are linked to a different appointment index
-                const allAppointments = await patientService.getAppointments();
-                const relevantApptIds = allAppointments
-                    .filter(a => 
-                        (activeContext === "DIRECT" && a.providerId?._id === appDetails.providerId?._id) ||
-                        (activeContext === "CLINICAL" && a.clinicId?._id === appDetails.clinicId?._id)
-                    )
-                    .map(a => a._id.toString());
-                
-                // Always include the current one just in case
-                const roomsToJoin = [...new Set([...relevantApptIds, appointmentId.toString()])];
-                
+
+                // Collect ALL appointment IDs for this patient so we can join every related
+                // socket room — this ensures real-time messages arrive regardless of which
+                // appointment thread the provider is replying from.
+                // Use the two existing patient service methods (getAppointments does not exist).
+                let roomsToJoin = [appointmentId.toString()]; // always include current
+                try {
+                    const [upcoming, past] = await Promise.all([
+                        patientService.getUpcomingAppointments(),
+                        patientService.getPastAppointments()
+                    ]);
+                    const all = [...(upcoming || []), ...(past || [])];
+                    const related = all
+                        .filter(a =>
+                            (activeContext === "DIRECT" && a.providerId?._id === appDetails.providerId?._id) ||
+                            (activeContext === "CLINICAL" && a.clinicId?._id === appDetails.clinicId?._id)
+                        )
+                        .map(a => a._id.toString());
+                    roomsToJoin = [...new Set([...related, appointmentId.toString()])];
+                } catch (roomErr) {
+                    // Non-critical — we still have the current appointment room
+                    console.warn("Could not fetch all appointments for room joining:", roomErr);
+                }
+
+                // Socket setup — done AFTER data is ready so the connect handler has roomsToJoin
+                socket.current = io(SOCKET_URL, { withCredentials: true });
+
                 socket.current.on("connect", () => {
-                    // Join appointment rooms
+                    // Join all related appointment rooms
                     roomsToJoin.forEach(id => {
                         socket.current.emit("join_chat", id);
                     });
-                    
-                    // Join personal user room for failsafe delivery
+                    // Join personal user room (failsafe — provider backend emits here too)
                     if (user._id || user.userId) {
                         socket.current.emit("join_user_room", user.userId || user._id);
                     }
+                    console.log("📶 Patient socket connected, joined rooms:", roomsToJoin);
                 });
 
                 socket.current.on("new_message", (msg) => {
-                    // Accept message if it belongs to any of our related appointments AND matches context
-                    if (roomsToJoin.includes(msg.appointmentId?.toString()) && msg.context === activeContext) {
+                    // Accept if the message belongs to any related appointment room
+                    // OR arrived via the user-room failsafe (appointmentId may differ).
+                    // Also accept if context is missing (older messages / failsafe path).
+                    const apptMatch = roomsToJoin.includes(msg.appointmentId?.toString());
+                    const contextMatch = !msg.context || msg.context === activeContext;
+
+                    if (apptMatch && contextMatch) {
                         setMessages(prev => {
                             if (prev.some(m => m._id === msg._id)) return prev;
                             if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
@@ -109,7 +124,7 @@ const PatientMessages = () => {
                     }
                 });
 
-                // Initial mark as read for current view
+                // Initial mark as read
                 patientService.markMessagesRead(appointmentId, activeContext);
             } catch (error) {
                 console.error("Chat init error:", error);
