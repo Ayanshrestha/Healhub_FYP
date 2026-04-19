@@ -17,6 +17,7 @@ import {
     FileText
 } from "lucide-react";
 import clinicService from "../services/clinicService";
+import { getAssetUrl } from "../../../services/api";
 
 const DoctorPublicProfile = () => {
     const { doctorId } = useParams();
@@ -94,7 +95,15 @@ const DoctorPublicProfile = () => {
                         <div className="w-40 h-40 rounded-[2.5rem] bg-white p-1.5 shadow-2xl relative">
                             <div className="w-full h-full rounded-[2.2rem] bg-teal-50 flex items-center justify-center overflow-hidden border-4 border-white">
                                 {doctor.profilePhoto ? (
-                                    <img src={doctor.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                                    <img
+                                        src={getAssetUrl(doctor.profilePhoto)}
+                                        alt="Profile"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.fullName || "Doctor")}&background=F1F5F9&color=0D9488`;
+                                            e.target.onerror = null;
+                                        }}
+                                    />
                                 ) : (
                                     <User className="w-16 h-16 text-teal-200" />
                                 )}

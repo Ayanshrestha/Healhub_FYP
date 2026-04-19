@@ -6,8 +6,22 @@ export const SOCKET_URL = BASE_URL;
 
 export const getAssetUrl = (path) => {
     if (!path) return "";
-    // Since Cloudinary is removed, always prepend BASE_URL for local uploads
-    return `${BASE_URL}${path}`;
+
+    // Normalize path if it's a legacy localhost URL from the database
+    let normalizedPath = path;
+    if (typeof path === 'string' && path.includes('localhost:5000')) {
+        normalizedPath = path.replace(/http:\/\/localhost:5000/g, BASE_URL);
+    }
+
+    // If it's already an absolute URL (starts with http), return it as-is
+    if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://")) {
+        return normalizedPath;
+    }
+
+    // Prepend BASE_URL for local uploads, ensuring we don't double the slash
+    const base = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+    const itemPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `${base}${itemPath}`;
 };
 
 

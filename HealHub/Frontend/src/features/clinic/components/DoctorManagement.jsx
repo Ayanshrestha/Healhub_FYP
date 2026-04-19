@@ -1,6 +1,7 @@
 import React from "react";
 import { UserCheck, UserX, UserPlus, Eye, MoreVertical, Building, Search, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getAssetUrl } from "../../../services/api";
 
 const DoctorManagement = ({
     doctors = [],
@@ -45,9 +46,15 @@ const DoctorManagement = ({
                                             className="w-12 h-12 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-teal-600 font-black cursor-pointer hover:bg-teal-50 transition-colors"
                                         >
                                             <img
-                                                src={app.providerId?.profilePhoto || `https://ui-avatars.com/api/?name=${app.providerId?.fullName}&background=F1F5F9&color=0D9488`}
+                                                src={app.providerId?.profilePhoto
+                                                    ? getAssetUrl(app.providerId.profilePhoto)
+                                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(app.providerId?.fullName || "Doctor")}&background=F1F5F9&color=0D9488`}
                                                 className="w-full h-full object-cover rounded-2xl"
                                                 alt=""
+                                                onError={(e) => {
+                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.providerId?.fullName || "Doctor")}&background=F1F5F9&color=0D9488`;
+                                                    e.target.onerror = null;
+                                                }}
                                             />
                                         </div>
                                         <div>
@@ -118,9 +125,15 @@ const DoctorManagement = ({
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl overflow-hidden border border-teal-100 group-hover:scale-110 transition-transform">
                                         <img
-                                            src={doctor.profilePhoto || `https://ui-avatars.com/api/?name=${doctor.fullName}&background=F0FDFA&color=0D9488`}
+                                            src={doctor.profilePhoto
+                                                ? getAssetUrl(doctor.profilePhoto)
+                                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.fullName || "Doctor")}&background=F0FDFA&color=0D9488`}
                                             className="w-full h-full object-cover"
                                             alt=""
+                                            onError={(e) => {
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.fullName || "Doctor")}&background=F0FDFA&color=0D9488`;
+                                                e.target.onerror = null;
+                                            }}
                                         />
                                     </div>
                                     <div className={`flex items-center px-3 py-1 rounded-full border ${doctor.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
@@ -203,9 +216,15 @@ const DoctorManagement = ({
                                     <div className="flex items-center space-x-4 mb-5">
                                         <div className="w-14 h-14 rounded-2xl bg-teal-50 overflow-hidden border border-teal-100 group-hover/card:scale-105 transition-transform">
                                             <img
-                                                src={doc.profilePhoto || `https://ui-avatars.com/api/?name=${doc.fullName}&background=F0FDFA&color=0D9488`}
+                                                src={doc.profilePhoto
+                                                    ? getAssetUrl(doc.profilePhoto)
+                                                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.fullName || "Doctor")}&background=F0FDFA&color=0D9488`}
                                                 className="w-full h-full object-cover"
                                                 alt=""
+                                                onError={(e) => {
+                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.fullName || "Doctor")}&background=F0FDFA&color=0D9488`;
+                                                    e.target.onerror = null;
+                                                }}
                                             />
                                         </div>
                                         <div>
