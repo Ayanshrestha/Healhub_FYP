@@ -14,7 +14,9 @@ import {
     Loader2,
     MessageSquare,
     FileText,
-    X
+    X,
+    Trash2,
+    Archive
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import * as providerService from "../services/providerService";
@@ -55,6 +57,10 @@ const ProviderMessages = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [uploading, setUploading] = useState(false);
     const [attachment, setAttachment] = useState(null);
+    const [hiddenIds, setHiddenIds] = useState(() => {
+        const saved = localStorage.getItem("provider_hidden_chats");
+        return saved ? JSON.parse(saved) : [];
+    });
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const socket = useRef();
@@ -65,14 +71,35 @@ const ProviderMessages = () => {
                 setLoading(true);
                 const res = await providerService.getAppointments();
 
-                // Group by appointment for real-time room consistency
-                const activeChats = (res.appointments || []).map(appt => ({
-                    appointmentId: appt._id,
-                    patient: appt.patientId,
-                    lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
-                    status: appt.status,
-                    recentMessage: "Click to view chat"
-                }));
+                // Group by Patient to avoid duplicates
+                const patientsMap = {};
+                (res.appointments || []).forEach(appt => {
+                    const pId = appt.patientId?._id;
+                    if (!pId) return;
+
+                    if (!patientsMap[pId]) {
+                        patientsMap[pId] = {
+                            patient: appt.patientId,
+                            appointments: [],
+                            latestAppointmentId: appt._id,
+                            lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
+                            status: appt.status,
+                            recentMessage: "Click to view history"
+                        };
+                    }
+                    patientsMap[pId].appointments.push(appt._id);
+                    
+                    // Keep the latest appointment info for the context
+                    const currentLatestDate = new Date(patientsMap[pId].lastTime);
+                    const thisDate = new Date(appt.appointmentDate);
+                    if (thisDate > currentLatestDate) {
+                        patientsMap[pId].lastTime = thisDate.toLocaleDateString();
+                        patientsMap[pId].latestAppointmentId = appt._id;
+                        patientsMap[pId].status = appt.status;
+                    }
+                });
+
+                const activeChats = Object.values(patientsMap);
 
                 setChats(activeChats);
                 if (activeChats.length > 0) setSelectedChat(activeChats[0]);
@@ -115,7 +142,8 @@ const ProviderMessages = () => {
 
             // Listen for messages in this room
             socket.current.on("new_message", (msg) => {
-                if (msg.appointmentId.toString() === selectedChat.appointmentId.toString()) {
+                if (msg.appointmentId.toString() === selectedChat.latestAppointmentId.toString() || 
+                    (selectedChat.appointments || []).includes(msg.appointmentId.toString())) {
                     setMessages(prev => {
                         // 1. Duplicate check
                         if (prev.some(m => m._id === msg._id)) return prev;
@@ -130,7 +158,8 @@ const ProviderMessages = () => {
 
                     // Update sidebar
                     setChats(prevChats => prevChats.map(c => {
-                        if (c.appointmentId.toString() === msg.appointmentId.toString()) {
+                        if (c.latestAppointmentId.toString() === msg.appointmentId.toString() || 
+                            (c.appointments || []).includes(msg.appointmentId.toString())) {
                             return {
                                 ...c,
                                 recentMessage: msg.content,
@@ -141,7 +170,7 @@ const ProviderMessages = () => {
                     }));
 
                     // Mark as read if user is looking at it
-                    providerService.markMessagesRead(selectedChat.appointmentId);
+                    providerService.markMessagesRead(msg.appointmentId);
                 }
             });
 
@@ -197,7 +226,7 @@ const ProviderMessages = () => {
         }
 
         const msgData = {
-            appointmentId: selectedChat.appointmentId,
+            appointmentId: selectedChat.latestAppointmentId,
             content: newMessage || (attachment ? `Shared a medical document: ${attachment.name}` : ""),
             type: attachment ? "REPORT" : "TEXT",
             attachments: attachment ? [attachment] : [],
@@ -222,7 +251,17 @@ const ProviderMessages = () => {
         }
     };
 
+    const handleHideChat = (patientId, e) => {
+        e.stopPropagation();
+        const updated = [...hiddenIds, patientId];
+        setHiddenIds(updated);
+        localStorage.setItem("provider_hidden_chats", JSON.stringify(updated));
+        if (selectedChat?.patient?._id === patientId) setSelectedChat(null);
+        toast.success("Chat archived");
+    };
+
     const filteredChats = chats.filter(c =>
+        !hiddenIds.includes(c.patient?._id) &&
         c.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -254,33 +293,43 @@ const ProviderMessages = () => {
 
                 <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
                     {filteredChats.length > 0 ? filteredChats.map((chat) => (
-                        <button
-                            key={chat.appointmentId}
-                            onClick={() => setSelectedChat(chat)}
-                            className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedChat?.appointmentId === chat.appointmentId
-                                ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 scale-[1.02]'
-                                : 'bg-white hover:bg-teal-50/50 text-gray-900'
-                                }`}
-                        >
-                            <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center text-sm font-black shadow-sm ${selectedChat?.appointmentId === chat.appointmentId ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
-                                }`}>
-                                {chat.patient?.profilePhoto ? (
-                                    <img src={chat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
-                                ) : (
-                                    chat.patient?.fullName?.charAt(0)
-                                )}
-                            </div>
-                            <div className="flex-1 text-left">
-                                <p className="font-bold text-sm truncate">{chat.patient?.fullName}</p>
-                                <p className={`text-[10px] font-bold truncate ${selectedChat?.appointmentId === chat.appointmentId ? 'text-teal-100' : 'text-gray-400 italic'}`}>
-                                    {chat.recentMessage}
-                                </p>
-                            </div>
-                            <div className="text-[8px] font-black uppercase flex flex-col items-end space-y-1">
-                                <span className={selectedChat?.appointmentId === chat.appointmentId ? 'text-teal-200' : 'text-gray-300'}>{chat.lastTime}</span>
-                                {chat.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
-                            </div>
-                        </button>
+                        <div key={chat.patient?._id} className="relative group">
+                            <button
+                                onClick={() => setSelectedChat(chat)}
+                                className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedChat?.patient?._id === chat.patient?._id
+                                    ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 scale-[1.02]'
+                                    : 'bg-white hover:bg-teal-50/50 text-gray-900'
+                                    }`}
+                            >
+                                <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center text-sm font-black shadow-sm ${selectedChat?.patient?._id === chat.patient?._id ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
+                                    }`}>
+                                    {chat.patient?.profilePhoto ? (
+                                        <img src={chat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
+                                    ) : (
+                                        chat.patient?.fullName?.charAt(0)
+                                    )}
+                                </div>
+                                <div className="flex-1 text-left">
+                                    <p className="font-bold text-sm truncate">{chat.patient?.fullName}</p>
+                                    <p className={`text-[10px] font-bold truncate ${selectedChat?.patient?._id === chat.patient?._id ? 'text-teal-100' : 'text-gray-400 italic'}`}>
+                                        {chat.recentMessage}
+                                    </p>
+                                </div>
+                                <div className="text-[8px] font-black uppercase flex flex-col items-end space-y-1">
+                                    <span className={selectedChat?.patient?._id === chat.patient?._id ? 'text-teal-200' : 'text-gray-300'}>{chat.lastTime}</span>
+                                    {chat.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
+                                </div>
+                            </button>
+                            
+                            {/* Hide/Delete Button appearing on hover */}
+                            <button
+                                onClick={(e) => handleHideChat(chat.patient?._id, e)}
+                                title="Hide Chat"
+                                className="absolute right-2 top-2 p-2 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     )) : (
                         <div className="text-center py-10 px-6">
                             <MessageSquare className="w-8 h-8 text-gray-200 mx-auto mb-2" />

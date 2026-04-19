@@ -118,7 +118,7 @@ const BookingFlow = () => {
                 timeSlot: selectedSlot,
                 visitType,
                 homeAddress: visitType === "HOME_VISIT" ? homeAddress : undefined,
-                paymentOption: "Clinic"
+                paymentOption: "Online"
             };
 
             await patientService.bookAppointment(bookingData);

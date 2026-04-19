@@ -21,10 +21,10 @@ const DOSAGE_PATTERN = /\d+\s?(mg|ml|mcg|g|iu|%)/i;
  */
 const isMedicalContent = (lines) => {
     const combined = lines.join(' ').toLowerCase();
-    
+
     // Check for dosage pattern (e.g., 500mg, 10ml, 250mcg)
     if (DOSAGE_PATTERN.test(combined)) return true;
-    
+
     // Check for at least 2 medical keywords to reduce false positives
     const matchCount = MEDICAL_KEYWORDS.filter(kw => combined.includes(kw)).length;
     return matchCount >= 2;
@@ -42,12 +42,12 @@ export const extractTextFromImage = async (imageSource) => {
         const worker = await createWorker('eng', 1, {
             logger: m => console.log(`[Tesseract] Status: ${m.status}`)
         });
-        
+
         const { data: { text } } = await worker.recognize(imageSource);
         await worker.terminate();
 
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-        
+
         if (lines.length === 0) {
             throw new Error("No readable text found in the image.");
         }
@@ -56,7 +56,7 @@ export const extractTextFromImage = async (imageSource) => {
         if (!isMedicalContent(lines)) {
             throw new Error("This does not appear to be a medicine image. Please upload a clear photo of a medicine box or label.");
         }
-        
+
         return lines;
     } catch (error) {
         console.error("Native OCR extraction error:", error.message);

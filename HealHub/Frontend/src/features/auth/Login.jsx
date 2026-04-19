@@ -157,12 +157,13 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                <label htmlFor="email" className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none group-focus-within:text-teal-600 transition-colors">
                     <Mail className="h-5 w-5 text-slate-300" />
                   </div>
                   <input
+                    id="email"
                     type="email"
                     required
                     value={email}
@@ -174,7 +175,7 @@ export default function Login() {
 
               <div className="space-y-1">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
+                  <label htmlFor="password" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Password</label>
                   <a href="#" className="text-[10px] font-black text-teal-600 uppercase tracking-widest hover:text-teal-700">Forgot?</a>
                 </div>
                 <div className="relative group">
@@ -182,6 +183,7 @@ export default function Login() {
                     <Lock className="h-5 w-5 text-slate-300" />
                   </div>
                   <input
+                    id="password"
                     type="password"
                     required
                     value={password}

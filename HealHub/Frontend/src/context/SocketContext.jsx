@@ -8,7 +8,7 @@ import clinicService from "../features/clinic/services/clinicService";
 import * as providerService from "../features/provider/services/providerService";
 import { SOCKET_URL } from "../services/api";
 
-const SocketContext = createContext();
+export const SocketContext = createContext();
 
 export const useSocket = () => useContext(SocketContext);
 

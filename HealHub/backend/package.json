@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/scripts/seed.js"
@@ -32,6 +32,8 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.11"
   },
   "description": ""

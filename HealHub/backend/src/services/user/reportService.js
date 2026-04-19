@@ -32,9 +32,26 @@ export const getAggregatedReports = async (userId) => {
     })));
 
 
-    // 2. Get reports from appointments (future integration: doctors might upload directly to appointment)
-    // For now, let's assume notes could contain links or we add an attachments field to Appointment
-    // Since we don't have attachments in Appointment model yet, let's just focus on Messages
+    // 2. Get reports from appointments
+    const appointments = await Appointment.find({
+        patientId,
+        "attachments.0": { $exists: true }
+    }).populate("providerId", "fullName specialization")
+        .populate("clinicId", "clinicName")
+        .lean();
 
-    return messageReports.sort((a, b) => b.date - a.date);
+    const appointmentReports = appointments.flatMap(appt => appt.attachments.map(att => ({
+        originalName: att.name,
+        url: att.url,
+        type: att.fileType,
+        providerName: appt.providerId?.fullName || "Health Provider",
+        clinicName: appt.clinicId?.clinicName || "HealHub Facility",
+        createdAt: att.uploadedAt || appt.createdAt,
+        source: "Appointment"
+    })));
+
+    // 3. Merge and sort all reports by date
+    const allReports = [...messageReports, ...appointmentReports];
+
+    return allReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
