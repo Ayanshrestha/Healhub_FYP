@@ -9,7 +9,8 @@ export const initSocket = (server) => {
                 process.env.APP_URL,
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "https://healhub-frontend-5k65.onrender.com"
+                "https://healhub-frontend-5k65.onrender.com",
+                "https://healhub-frontend.netlify.app",
             ].filter(Boolean),
             methods: ["GET", "POST"],
             credentials: true,
