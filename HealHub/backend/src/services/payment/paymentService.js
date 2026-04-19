@@ -91,7 +91,8 @@ export const initiateAppointmentPayment = async (appointmentId) => {
     const doctor = await Doctor.findById(appointment.providerId);
     if (!doctor) throw new Error("Doctor not found for this appointment");
 
-    const amount = doctor.consultationFee || 500;
+    // Using appointment.consultationFee to ensure Home Visit surcharges are included
+    const amount = appointment.consultationFee || doctor.consultationFee || 500;
 
     const payload = {
         return_url: config.khalti.returnUrl || `${config.appUrl}/patient/payment-verification`,

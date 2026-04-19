@@ -20,6 +20,7 @@ import {
     Stethoscope
 } from "lucide-react";
 import patientService from "../services/patientService";
+import { getAssetUrl } from "../../../services/api";
 import ConfirmModal from "../../../components/common/ConfirmModal";
 
 const PatientAppointmentDetails = () => {
@@ -182,7 +183,7 @@ const PatientAppointmentDetails = () => {
                         <h3 className="text-sm font-black text-slate-300 uppercase tracking-widest mb-8">Medical Specialist</h3>
                         <div className="flex items-center gap-8 mb-10 pb-10 border-b border-slate-50">
                             <div className="w-24 h-24 rounded-[2rem] overflow-hidden bg-slate-100 border-4 border-white shadow-xl relative group">
-                                <img src={appointment.providerId?.profilePhoto || `https://ui-avatars.com/api/?name=${appointment.providerId?.fullName}&background=0D9488&color=fff`} className="w-full h-full object-cover" alt="" />
+                                <img src={appointment.providerId?.profilePhoto ? getAssetUrl(appointment.providerId.profilePhoto) : `https://ui-avatars.com/api/?name=${appointment.providerId?.fullName}&background=0D9488&color=fff`} className="w-full h-full object-cover" alt="" />
                             </div>
                             <div>
                                 <h4 className="text-2xl font-black text-slate-800 tracking-tighter uppercase italic">{appointment.providerId?.fullName}</h4>
