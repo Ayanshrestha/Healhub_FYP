@@ -57,10 +57,6 @@ const ProviderMessages = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [uploading, setUploading] = useState(false);
     const [attachment, setAttachment] = useState(null);
-    const [hiddenIds, setHiddenIds] = useState(() => {
-        const saved = localStorage.getItem("provider_hidden_chats");
-        return saved ? JSON.parse(saved) : [];
-    });
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const socket = useRef();
@@ -71,35 +67,13 @@ const ProviderMessages = () => {
                 setLoading(true);
                 const res = await providerService.getAppointments();
 
-                // Group by Patient to avoid duplicates
-                const patientsMap = {};
-                (res.appointments || []).forEach(appt => {
-                    const pId = appt.patientId?._id;
-                    if (!pId) return;
-
-                    if (!patientsMap[pId]) {
-                        patientsMap[pId] = {
-                            patient: appt.patientId,
-                            appointments: [],
-                            latestAppointmentId: appt._id,
-                            lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
-                            status: appt.status,
-                            recentMessage: "Click to view history"
-                        };
-                    }
-                    patientsMap[pId].appointments.push(appt._id);
-                    
-                    // Keep the latest appointment info for the context
-                    const currentLatestDate = new Date(patientsMap[pId].lastTime);
-                    const thisDate = new Date(appt.appointmentDate);
-                    if (thisDate > currentLatestDate) {
-                        patientsMap[pId].lastTime = thisDate.toLocaleDateString();
-                        patientsMap[pId].latestAppointmentId = appt._id;
-                        patientsMap[pId].status = appt.status;
-                    }
-                });
-
-                const activeChats = Object.values(patientsMap);
+                const activeChats = (res.appointments || []).map(appt => ({
+                    ...appt,
+                    patient: appt.patientId,
+                    latestAppointmentId: appt._id,
+                    lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
+                    recentMessage: "Click to view history"
+                }));
 
                 setChats(activeChats);
                 if (activeChats.length > 0) setSelectedChat(activeChats[0]);
@@ -122,11 +96,9 @@ const ProviderMessages = () => {
             console.log("📶 Provider Socket Connected and Joined User Room");
         });
 
-        // Global listener for sidebar updates and notifications
         socket.current.on("new_message", (msg) => {
             setChats(prevChats => prevChats.map(c => {
-                const isMatch = c.latestAppointmentId?.toString() === msg.appointmentId?.toString() || 
-                               (c.appointments || []).map(id => id.toString()).includes(msg.appointmentId?.toString());
+                const isMatch = c._id.toString() === msg.appointmentId?.toString();
                 
                 if (isMatch) {
                     return {
@@ -158,11 +130,8 @@ const ProviderMessages = () => {
                     const res = await providerService.getMessageHistory(selectedChat.latestAppointmentId);
                     setMessages(res.history || res.messages || []);
 
-                    // Join all related appointment rooms for this specific patient
-                    const appointmentIds = selectedChat.appointments || [selectedChat.latestAppointmentId];
-                    appointmentIds.forEach(id => {
-                        socket.current.emit("join_chat", id.toString());
-                    });
+                    // Join the specific appointment room
+                    socket.current.emit("join_chat", selectedChat._id.toString());
 
                     // Mark as read
                     providerService.markMessagesRead(selectedChat.latestAppointmentId);
@@ -174,10 +143,8 @@ const ProviderMessages = () => {
             };
             fetchChatHistory();
 
-            // Room-specific listener for the active conversation
             const handleMessageForSelected = (msg) => {
-                const isMatch = msg.appointmentId?.toString() === selectedChat.latestAppointmentId?.toString() || 
-                               (selectedChat.appointments || []).map(id => id.toString()).includes(msg.appointmentId?.toString());
+                const isMatch = msg.appointmentId?.toString() === selectedChat._id.toString();
                 
                 if (isMatch) {
                     setMessages(prev => {
@@ -270,17 +237,7 @@ const ProviderMessages = () => {
         }
     };
 
-    const handleHideChat = (patientId, e) => {
-        e.stopPropagation();
-        const updated = [...hiddenIds, patientId];
-        setHiddenIds(updated);
-        localStorage.setItem("provider_hidden_chats", JSON.stringify(updated));
-        if (selectedChat?.patient?._id === patientId) setSelectedChat(null);
-        toast.success("Chat archived");
-    };
-
     const filteredChats = chats.filter(c =>
-        !hiddenIds.includes(c.patient?._id) &&
         c.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -312,7 +269,7 @@ const ProviderMessages = () => {
 
                 <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
                     {filteredChats.length > 0 ? filteredChats.map((chat) => (
-                        <div key={chat.patient?._id} className="relative group">
+                        <div key={chat._id} className="relative group">
                             <button
                                 onClick={() => setSelectedChat(chat)}
                                 className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedChat?.patient?._id === chat.patient?._id
@@ -338,15 +295,6 @@ const ProviderMessages = () => {
                                     <span className={selectedChat?.patient?._id === chat.patient?._id ? 'text-teal-200' : 'text-gray-300'}>{chat.lastTime}</span>
                                     {chat.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
                                 </div>
-                            </button>
-                            
-                            {/* Hide/Delete Button appearing on hover */}
-                            <button
-                                onClick={(e) => handleHideChat(chat.patient?._id, e)}
-                                title="Hide Chat"
-                                className="absolute right-2 top-2 p-2 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     )) : (
