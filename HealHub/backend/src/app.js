@@ -46,6 +46,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:5173",
   "https://healhub-frontend-5k65.onrender.com",
+  "https://healhub-frontend.netlify.app",
 ].filter(Boolean);
 
 app.use((req, res, next) => {
