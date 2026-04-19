@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { getAssetUrl } from "../../../services/api";
 import { toast } from "react-hot-toast";
 import {
     ChevronRight,
@@ -49,6 +50,17 @@ const BookingFlow = () => {
                 if (selectedDepartment) {
                     const doctorsData = await patientService.getClinicDoctors(clinicId, selectedDepartment);
                     setDoctors(doctorsData);
+                } else {
+                    setDoctors(clinicData?.topSpecialists || []);
+                }
+
+                // If user clicked 'Book Consultation' directly on a doctor card, skip to step 2
+                if (location.state?.doctorId && clinicData?.topSpecialists) {
+                    const doc = clinicData.topSpecialists.find(d => d._id === location.state.doctorId);
+                    if (doc) {
+                        setSelectedDoctor(doc);
+                        setStep(2);
+                    }
                 }
             } catch (error) {
                 console.error("Booking init error:", error);
@@ -173,8 +185,12 @@ const BookingFlow = () => {
                                 className="group p-6 bg-white rounded-[2.5rem] border border-slate-100 hover:border-teal-200 hover:shadow-2xl hover:shadow-teal-900/5 transition-all duration-300 cursor-pointer"
                             >
                                 <div className="flex items-start space-x-5">
-                                    <div className="w-20 h-20 rounded-3xl overflow-hidden bg-slate-100 border-2 border-white shadow-sm ring-4 ring-slate-50">
-                                        <img src={doc.profilePhoto || `https://ui-avatars.com/api/?name=${doc.fullName}&background=0D9488&color=fff`} className="w-full h-full object-cover" alt="" />
+                                    <div className="w-20 h-20 rounded-3xl overflow-hidden bg-slate-100 border-2 border-white shadow-sm ring-4 ring-slate-50 relative shrink-0">
+                                        {doc.profilePhoto ? (
+                                            <img src={getAssetUrl(doc.profilePhoto)} className="w-full h-full object-cover" alt={doc.fullName} />
+                                        ) : (
+                                            <img src={`https://ui-avatars.com/api/?name=${doc.fullName}&background=0D9488&color=fff`} className="w-full h-full object-cover" alt="" />
+                                        )}
                                     </div>
                                     <div className="flex-1">
                                         <h4 className="text-xl font-black text-slate-800 group-hover:text-teal-600 transition-colors uppercase tracking-tight">{doc.fullName}</h4>
