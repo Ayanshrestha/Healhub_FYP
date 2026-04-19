@@ -51,6 +51,10 @@ const DoctorManagement = ({
                                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(app.providerId?.fullName || "Doctor")}&background=F1F5F9&color=0D9488`}
                                                 className="w-full h-full object-cover rounded-2xl"
                                                 alt=""
+                                                onError={(e) => {
+                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.providerId?.fullName || "Doctor")}&background=F1F5F9&color=0D9488`;
+                                                    e.target.onerror = null;
+                                                }}
                                             />
                                         </div>
                                         <div>
@@ -126,6 +130,10 @@ const DoctorManagement = ({
                                                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.fullName || "Doctor")}&background=F0FDFA&color=0D9488`}
                                             className="w-full h-full object-cover"
                                             alt=""
+                                            onError={(e) => {
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.fullName || "Doctor")}&background=F0FDFA&color=0D9488`;
+                                                e.target.onerror = null;
+                                            }}
                                         />
                                     </div>
                                     <div className={`flex items-center px-3 py-1 rounded-full border ${doctor.status === 'active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
@@ -213,6 +221,10 @@ const DoctorManagement = ({
                                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.fullName || "Doctor")}&background=F0FDFA&color=0D9488`}
                                                 className="w-full h-full object-cover"
                                                 alt=""
+                                                onError={(e) => {
+                                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.fullName || "Doctor")}&background=F0FDFA&color=0D9488`;
+                                                    e.target.onerror = null;
+                                                }}
                                             />
                                         </div>
                                         <div>
