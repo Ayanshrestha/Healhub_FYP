@@ -34,7 +34,7 @@ export const sendMessage = async (userId, appointmentId, messageData) => {
         patientId: patient._id,
         providerId: appointment.providerId,
         providerType: appointment.providerType,
-        clinicId: appointment.clinicId,
+        clinicId: appointment.clinicId || undefined,
         appointmentId: new mongoose.Types.ObjectId(appointmentId),
         sender: "PATIENT",
         content,

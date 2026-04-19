@@ -21,7 +21,7 @@ const messageSchema = new mongoose.Schema(
         clinicId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Clinic",
-            required: true,
+            required: false,
         },
         appointmentId: {
             type: mongoose.Schema.Types.ObjectId,
