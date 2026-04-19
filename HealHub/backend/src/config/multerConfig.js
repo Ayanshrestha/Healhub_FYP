@@ -2,10 +2,14 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Base upload directory
-const baseDir = "uploads";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Base upload directory (Absolute path to ensure consistency on Render/Local)
+const baseDir = path.join(__dirname, "../../uploads");
 if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir);
+    fs.mkdirSync(baseDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
