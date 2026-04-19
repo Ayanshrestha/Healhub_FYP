@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/AdminLayout";
 import { Building, Plus, Search, MapPin, Loader2, AlertCircle } from "lucide-react";
 import { getSystemData, updateClinicStatus } from "../services/adminAuthService";
+import { getAssetUrl } from "../../../services/api";
 import { toast } from "react-hot-toast";
 
 const ClinicManagement = () => {
@@ -95,8 +96,20 @@ const ClinicManagement = () => {
                     {filteredClinics.map((clinic) => (
                         <div key={clinic._id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
                             <div className="flex justify-between items-start mb-6">
-                                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110">
-                                    <Building className="w-7 h-7 text-emerald-600" />
+                                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 overflow-hidden border border-emerald-100 shadow-sm">
+                                    {(clinic.clinicLogo || clinic.logo) ? (
+                                        <img 
+                                            src={getAssetUrl(clinic.clinicLogo || clinic.logo)} 
+                                            alt={clinic.clinicName}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clinic.clinicName)}&background=10B981&color=fff`;
+                                            }}
+                                        />
+                                    ) : (
+                                        <Building className="w-7 h-7 text-emerald-600" />
+                                    )}
                                 </div>
                                 <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${clinic.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
                                     clinic.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-700 border-amber-200' :

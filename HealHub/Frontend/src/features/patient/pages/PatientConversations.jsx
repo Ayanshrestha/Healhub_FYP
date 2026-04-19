@@ -13,6 +13,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import patientService from "../services/patientService";
 
+import { getAssetUrl } from "../../../services/api";
+
 const PatientConversations = () => {
     const navigate = useNavigate();
     const [appointments, setAppointments] = useState({ doctors: [], clinics: [] });
@@ -123,10 +125,13 @@ const PatientConversations = () => {
                                 <div className="flex items-center space-x-6">
                                     <div className="w-20 h-20 rounded-3xl overflow-hidden bg-slate-100 border-2 border-white shadow-sm group-hover:scale-110 transition-transform">
                                         <img
-                                            src={(activeView === 'doctors' ? app.providerId?.profilePhoto : app.clinicId?.logo) || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeView === 'doctors' ? app.providerId?.fullName : app.clinicId?.clinicName)}&background=${activeView === 'doctors' ? '0D9488' : '0F172A'}&color=fff`}
+                                            src={getAssetUrl(activeView === 'doctors' ? app.providerId?.profilePhoto : app.clinicId?.clinicLogo || app.clinicId?.logo)}
                                             className="w-full h-full object-cover"
                                             alt=""
-                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeView === 'doctors' ? app.providerId?.fullName : app.clinicId?.clinicName)}&background=${activeView === 'doctors' ? '0D9488' : '0F172A'}&color=fff`; }}
+                                            onError={(e) => { 
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(activeView === 'doctors' ? app.providerId?.fullName : app.clinicId?.clinicName)}&background=${activeView === 'doctors' ? '0D9488' : '0F172A'}&color=fff`; 
+                                            }}
                                         />
                                     </div>
                                     <div>

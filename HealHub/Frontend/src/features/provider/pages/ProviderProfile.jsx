@@ -19,7 +19,7 @@ import {
     X
 } from "lucide-react";
 import * as providerService from "../services/providerService";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 
 const ProviderProfile = () => {
     const [profile, setProfile] = useState(null);
@@ -117,7 +117,18 @@ const ProviderProfile = () => {
             const res = await providerService.uploadProfilePhoto(file);
             setProfile(prev => ({ ...prev, profilePhoto: res.profilePhoto }));
             setFormData(prev => ({ ...prev, profilePhoto: res.profilePhoto }));
+
+            // Sync with localStorage for Navbar/Sidebar immediate update
+            const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+            localStorage.setItem("user", JSON.stringify({ 
+                ...currentUser, 
+                profilePhoto: res.profilePhoto 
+            }));
+
             setMessage({ type: 'success', text: 'Photo updated successfully!' });
+            
+            // Trigger a re-render for parts of the app listening to storage
+            window.dispatchEvent(new Event('storage'));
             setTimeout(() => setMessage(null), 3000);
         } catch (err) {
             setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to upload photo' });
@@ -145,10 +156,10 @@ const ProviderProfile = () => {
                                 <div className="w-full h-full rounded-[1.8rem] bg-teal-50 flex items-center justify-center overflow-hidden border-4 border-white">
                                     {profile?.profilePhoto ? (
                                         <img 
-                                            src={profile.profilePhoto.startsWith('http') ? profile.profilePhoto : `${BASE_URL}${profile.profilePhoto}`} 
+                                            src={getAssetUrl(profile.profilePhoto)} 
                                             alt="Profile" 
                                             className="w-full h-full object-cover" 
-                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=random&color=fff`; }}
+                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=0D9488&color=fff`; }}
                                         />
                                     ) : (
                                         <User className="w-12 h-12 text-teal-300" />

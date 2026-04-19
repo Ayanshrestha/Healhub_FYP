@@ -6,9 +6,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Base upload directory (Absolute path to ensure consistency on Render/Local)
-const baseDir = path.join(__dirname, "../../uploads");
+// Base upload directory (Absolute path to ensure consistency on Windows/Local)
+const baseDir = path.resolve(__dirname, "../../uploads");
 if (!fs.existsSync(baseDir)) {
+    console.log(`[Multer] Creating upload directory at: ${baseDir}`);
     fs.mkdirSync(baseDir, { recursive: true });
 }
 
@@ -18,7 +19,8 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+        const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, "-");
+        cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(cleanName)}`);
     }
 });
 

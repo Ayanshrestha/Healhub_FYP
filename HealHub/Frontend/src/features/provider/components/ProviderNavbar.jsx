@@ -14,7 +14,7 @@ import {
     Settings
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { clearSession } from "../../../services/api";
+import { clearSession, getAssetUrl } from "../../../services/api";
 import NotificationDropdown from "../../patient/components/NotificationDropdown";
 import Logo from "../../../components/common/Logo";
 
@@ -23,7 +23,15 @@ const ProviderNavbar = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
+
+    React.useEffect(() => {
+        const handleStorageChange = () => {
+            setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const navLinks = [
         { name: "Dashboard", path: "/provider/dashboard", icon: LayoutDashboard },
@@ -90,9 +98,17 @@ const ProviderNavbar = () => {
                                     <p className="text-xs font-bold text-gray-900 leading-none group-hover:text-teal-600 transition-colors uppercase tracking-tight">{user.fullName || "Medical Staff"}</p>
                                     <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-0.5">Verified Medical Staff</p>
                                 </div>
-                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white">
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white overflow-hidden">
                                     {user.profilePhoto ? (
-                                        <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                                        <img 
+                                            src={getAssetUrl(user.profilePhoto)} 
+                                            alt="User" 
+                                            className="w-full h-full object-cover rounded-full" 
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "P")}&background=0D9488&color=fff`;
+                                            }}
+                                        />
                                     ) : (
                                         (user.fullName?.charAt(0) || "P").toUpperCase()
                                     )}

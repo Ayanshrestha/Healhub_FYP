@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import ClinicLayout from "../../../layouts/ClinicLayout";
 import clinicService from "../services/clinicService";
 import { Loader2, Save, User, Building, MapPin, Phone, Mail, Shield, Clock, Plus, X, Globe, FileText, Download, Camera, Image as ImageIcon } from "lucide-react";
-import { BASE_URL } from "../../../services/api";
+import { BASE_URL, getAssetUrl } from "../../../services/api";
 
 const ClinicProfilePage = () => {
     const [profile, setProfile] = useState({
@@ -132,12 +132,32 @@ const ClinicProfilePage = () => {
         try {
             setSaving(true);
             const response = await clinicService.uploadClinicImages(formData);
+            
+            const updatedClinic = response.clinic;
             setProfile(prev => ({
                 ...prev,
-                clinicImage: response.clinic.clinicImage,
-                clinicLogo: response.clinic.clinicLogo
+                clinicImage: updatedClinic.clinicImage,
+                clinicLogo: updatedClinic.clinicLogo
             }));
+
+            // Sync with localStorage for Navbar/Sidebar immediate update
+            const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+            const updatedUser = { 
+                ...currentUser, 
+                profilePhoto: type === 'clinicLogo' ? updatedClinic.clinicLogo : currentUser.profilePhoto,
+                clinicLogo: updatedClinic.clinicLogo,
+                clinicImage: updatedClinic.clinicImage
+            };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            
+            // Reset error states if upload succeeded
+            if (type === 'clinicLogo') setImageErrors(prev => ({ ...prev, logo: false }));
+            if (type === 'clinicImage') setImageErrors(prev => ({ ...prev, hero: false }));
+
             setMessage({ type: "success", text: `${type === 'clinicImage' ? 'Hero image' : 'Logo'} updated successfully!` });
+            
+            // Trigger a re-render for parts of the app listening to storage (global sync)
+            window.dispatchEvent(new Event('storage'));
         } catch (error) {
             console.error("Upload error:", error);
             setMessage({ type: "error", text: "Failed to upload image. Please try again." });
@@ -279,7 +299,7 @@ const ClinicProfilePage = () => {
                                         <div className="w-32 h-32 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
                                             {profile.clinicLogo && !imageErrors.logo ? (
                                                 <img
-                                                    src={profile.clinicLogo.startsWith('http') ? profile.clinicLogo : `${BASE_URL}${profile.clinicLogo}`}
+                                                    src={getAssetUrl(profile.clinicLogo)}
                                                     alt="Logo"
                                                     className="w-full h-full object-cover"
                                                     onError={() => setImageErrors(prev => ({ ...prev, logo: true }))}
@@ -304,7 +324,7 @@ const ClinicProfilePage = () => {
                                         <div className="aspect-video w-full rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
                                             {profile.clinicImage && !imageErrors.hero ? (
                                                 <img
-                                                    src={profile.clinicImage.startsWith('http') ? profile.clinicImage : `${BASE_URL}${profile.clinicImage}`}
+                                                    src={getAssetUrl(profile.clinicImage)}
                                                     alt="Hero"
                                                     className="w-full h-full object-cover"
                                                     onError={() => setImageErrors(prev => ({ ...prev, hero: true }))}

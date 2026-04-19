@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import clinicService from "../services/clinicService";
-import { clearSession } from "../../../services/api";
+import { clearSession, getAssetUrl } from "../../../services/api";
 import NotificationDropdown from "../../patient/components/NotificationDropdown";
 import { useSocket } from "../../../context/SocketContext";
 import Logo from "../../../components/common/Logo";
@@ -25,7 +25,15 @@ const ClinicNavbar = () => {
     const navigate = useNavigate();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
+    
+    useEffect(() => {
+        const handleStorageChange = () => {
+            setUser(JSON.parse(localStorage.getItem("user") || "{}"));
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const navLinks = [
         { name: "Dashboard", path: "/clinic/dashboard", icon: LayoutDashboard },
@@ -139,9 +147,17 @@ const ClinicNavbar = () => {
                                     <p className="text-xs font-bold text-gray-900 leading-none group-hover:text-teal-600 transition-colors uppercase tracking-tight">{user.fullName || "Clinic Admin"}</p>
                                     <p className="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-0.5">Verified Clinic</p>
                                 </div>
-                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white">
-                                    {user.profilePhoto ? (
-                                        <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border-2 border-white overflow-hidden">
+                                    {(user.profilePhoto || user.clinicLogo) ? (
+                                        <img 
+                                            src={getAssetUrl(user.profilePhoto || user.clinicLogo)} 
+                                            alt="User" 
+                                            className="w-full h-full object-cover rounded-full" 
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "C")}&background=0D9488&color=fff`;
+                                            }}
+                                        />
                                     ) : (
                                         (user.fullName?.charAt(0) || "C").toUpperCase()
                                     )}
