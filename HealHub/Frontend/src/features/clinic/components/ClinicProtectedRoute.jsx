@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import clinicService from "../services/clinicService";
 
@@ -8,21 +8,26 @@ import clinicService from "../services/clinicService";
  */
 const ClinicProtectedRoute = ({ children }) => {
     const location = useLocation();
-    const [status, setStatus] = useState(localStorage.getItem("clinic_status"));
-    const [loading, setLoading] = useState(!status && !!localStorage.getItem("clinic_token"));
+    const cachedStatus = localStorage.getItem("clinic_status");
+    const [status, setStatus] = useState(cachedStatus);
+    // Only show loading spinner if we have a token but no cached status yet
+    const [loading, setLoading] = useState(!cachedStatus && !!localStorage.getItem("clinic_token"));
+    // Prevent re-fetching on every route change — fetch only once per mount
+    const hasFetched = useRef(false);
 
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
         const fetchStatus = async () => {
             const token = localStorage.getItem("clinic_token");
+            const existingStatus = localStorage.getItem("clinic_status");
 
-            // If we have a token but no status, or if we have it but it's not active, 
-            // we should try to sync from API (at least once on mount)
-            if (token && (!status || (status !== "ACTIVE" && status !== "APPROVED"))) {
+            // Only hit the API if we lack a reliable cached status
+            if (token && (!existingStatus || (existingStatus !== "ACTIVE" && existingStatus !== "APPROVED"))) {
                 try {
                     console.log("[ClinicProtectedRoute] Syncing clinic status from API...");
                     const data = await clinicService.getProfile();
-
-                    // The clinicService.getProfile returns response.data (which contains .clinic)
                     const clinicData = data?.clinic || data;
                     const newStatus = (clinicData?.status || "PENDING_APPROVAL").toUpperCase();
 
@@ -31,7 +36,6 @@ const ClinicProtectedRoute = ({ children }) => {
                     setStatus(newStatus);
                 } catch (error) {
                     console.error("[ClinicProtectedRoute] Failed to fetch fresh status:", error);
-                    // If API fails, we stick with what we have (likely triggering the redirect below)
                 } finally {
                     setLoading(false);
                 }
@@ -41,7 +45,7 @@ const ClinicProtectedRoute = ({ children }) => {
         };
 
         fetchStatus();
-    }, [location.pathname]); // Re-check on path change to be safe
+    }, []); // Run ONCE on mount only — path changes must NOT reset loading state
 
     if (loading) {
         return (
@@ -60,13 +64,18 @@ const ClinicProtectedRoute = ({ children }) => {
     const clinicStatus = (status || "PENDING_APPROVAL").toUpperCase();
     const allowedPaths = ["/clinic/billing", "/clinic/profile", "/clinic/settings", "/clinic/subscription"];
 
-    // If NOT active/approved and NOT on an allowed public-ish page
     if (clinicStatus !== "ACTIVE" && clinicStatus !== "APPROVED" && !allowedPaths.includes(location.pathname)) {
         if (clinicStatus === "APPROVED_UNPAID") {
-            return <Navigate to="/clinic/subscription" replace />;
+            // Avoid redirecting to a path we're already on
+            if (location.pathname !== "/clinic/subscription") {
+                return <Navigate to="/clinic/subscription" replace />;
+            }
+        } else {
+            if (location.pathname !== "/clinic/billing") {
+                console.log("[ClinicProtectedRoute] Redirecting to billing. Status:", clinicStatus);
+                return <Navigate to="/clinic/billing" replace />;
+            }
         }
-        console.log("[ClinicProtectedRoute] Redirecting to billing. Status:", clinicStatus);
-        return <Navigate to="/clinic/billing" replace />;
     }
 
     return children;
