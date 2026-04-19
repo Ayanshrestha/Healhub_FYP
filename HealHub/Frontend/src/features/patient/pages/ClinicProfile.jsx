@@ -59,7 +59,7 @@ const ClinicProfile = () => {
 
     const checkOpenStatus = (hours) => {
         const now = new Date();
-        const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const today = days[now.getDay()];
         const todayHours = hours[today];
 
