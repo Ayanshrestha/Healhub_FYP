@@ -47,10 +47,59 @@ const groupMessagesByDate = (messages) => {
     return groups;
 };
 
+/**
+ * Given a flat list of appointments (each with patientId as a populated object),
+ * return an array of "unified chat" objects — one per unique patient email.
+ *
+ * Each object has:
+ *   - email               – the grouping key
+ *   - patient             – the patientId object from the most-recent appointment
+ *   - latestAppointmentId – _id of the most recent appointment (used to fetch history & send)
+ *   - allAppointmentIds   – ALL appointment _ids for this patient (used by socket matching)
+ *   - lastTime            – formatted date of the most recent appointment
+ *   - recentMessage       – preview text shown in the sidebar
+ *   - status              – status of the most recent appointment
+ */
+const groupChatsByEmail = (appointments) => {
+    const emailMap = {};
+
+    appointments.forEach(appt => {
+        const email = appt.patientId?.email;
+        if (!email) return;
+
+        if (!emailMap[email]) {
+            emailMap[email] = {
+                email,
+                patient: appt.patientId,
+                latestAppointmentId: appt._id,
+                latestDate: new Date(appt.appointmentDate),
+                allAppointmentIds: [appt._id],
+                lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
+                recentMessage: "Click to view history",
+                status: appt.status,
+            };
+        } else {
+            emailMap[email].allAppointmentIds.push(appt._id);
+            const apptDate = new Date(appt.appointmentDate);
+            if (apptDate > emailMap[email].latestDate) {
+                // This appointment is more recent — update the "latest" pointers
+                emailMap[email].latestAppointmentId = appt._id;
+                emailMap[email].latestDate = apptDate;
+                emailMap[email].lastTime = apptDate.toLocaleDateString();
+                emailMap[email].patient = appt.patientId;
+                emailMap[email].status = appt.status;
+            }
+        }
+    });
+
+    return Object.values(emailMap);
+};
+
 const ProviderMessages = () => {
-    const [selectedChat, setSelectedChat] = useState(null); // Now stores the appointment/chat object
+    // selectedChat is now a unified group object (see groupChatsByEmail)
+    const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
-    const [chats, setChats] = useState([]);
+    const [chats, setChats] = useState([]);   // array of unified group objects
     const [loading, setLoading] = useState(true);
     const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState("");
@@ -61,22 +110,19 @@ const ProviderMessages = () => {
     const fileInputRef = useRef(null);
     const socket = useRef();
 
+    // ─── Initial load + socket setup ──────────────────────────────────────────
     useEffect(() => {
         const fetchChats = async () => {
             try {
                 setLoading(true);
                 const res = await providerService.getAppointments();
+                const appointments = res.appointments || [];
 
-                const activeChats = (res.appointments || []).map(appt => ({
-                    ...appt,
-                    patient: appt.patientId,
-                    latestAppointmentId: appt._id,
-                    lastTime: new Date(appt.appointmentDate).toLocaleDateString(),
-                    recentMessage: "Click to view history"
-                }));
+                // Group by patient email → one sidebar entry per patient
+                const unified = groupChatsByEmail(appointments);
 
-                setChats(activeChats);
-                if (activeChats.length > 0) setSelectedChat(activeChats[0]);
+                setChats(unified);
+                if (unified.length > 0) setSelectedChat(unified[0]);
             } catch (err) {
                 console.error("Fetch chats error:", err);
             } finally {
@@ -86,6 +132,7 @@ const ProviderMessages = () => {
         fetchChats();
 
         const user = JSON.parse(localStorage.getItem("user") || "{}");
+
         // Initialize socket with credentials
         socket.current = io(SOCKET_URL, { withCredentials: true });
 
@@ -96,24 +143,22 @@ const ProviderMessages = () => {
             console.log("📶 Provider Socket Connected and Joined User Room");
         });
 
+        // Sidebar real-time update: match incoming message against ALL appointment
+        // IDs of every unified group and refresh the preview text.
         socket.current.on("new_message", (msg) => {
-            setChats(prevChats => prevChats.map(c => {
-                const isMatch = c._id.toString() === msg.appointmentId?.toString();
-                
-                if (isMatch) {
+            setChats(prevChats =>
+                prevChats.map(group => {
+                    const belongs = group.allAppointmentIds.some(
+                        id => id.toString() === msg.appointmentId?.toString()
+                    );
+                    if (!belongs) return group;
                     return {
-                        ...c,
-                        recentMessage: msg.content,
-                        lastTime: new Date(msg.createdAt).toLocaleDateString()
+                        ...group,
+                        recentMessage: msg.content || group.recentMessage,
+                        lastTime: new Date(msg.createdAt).toLocaleDateString(),
                     };
-                }
-                return c;
-            }));
-
-            // If this message belongs to the CURRENTLY selected chat, append it to messages
-            // (The setMessages call is handled here safely via a ref or by checking current selectedChat)
-            // Actually, we'll handle the setMessages in a second listener specifically for the selected chat
-            // or just ensure this one has access to the current selectedChat ID.
+                })
+            );
         });
 
         return () => {
@@ -121,51 +166,69 @@ const ProviderMessages = () => {
         };
     }, []);
 
-
+    // ─── Per-selected-chat: fetch history + real-time listener ────────────────
     useEffect(() => {
-        if (selectedChat && socket.current) {
-            const fetchChatHistory = async () => {
-                try {
-                    setChatLoading(true);
-                    const res = await providerService.getMessageHistory(selectedChat.latestAppointmentId);
-                    setMessages(res.history || res.messages || []);
+        if (!selectedChat || !socket.current) return;
 
-                    // Join the specific appointment room
-                    socket.current.emit("join_chat", selectedChat._id.toString());
+        const fetchChatHistory = async () => {
+            try {
+                setChatLoading(true);
+                // Load history for the patient's most-recent appointment
+                const res = await providerService.getMessageHistory(
+                    selectedChat.latestAppointmentId
+                );
+                setMessages(res.history || res.messages || []);
 
-                    // Mark as read
-                    providerService.markMessagesRead(selectedChat.latestAppointmentId);
-                } catch (err) {
-                    console.error("Fetch chat history error:", err);
-                } finally {
-                    setChatLoading(false);
+                // Join the socket room for the latest appointment
+                socket.current.emit(
+                    "join_chat",
+                    selectedChat.latestAppointmentId.toString()
+                );
+
+                // Also join rooms for ALL other appointments of this patient
+                // so we never miss a real-time message on any thread
+                selectedChat.allAppointmentIds.forEach(id => {
+                    if (id.toString() !== selectedChat.latestAppointmentId.toString()) {
+                        socket.current.emit("join_chat", id.toString());
+                    }
+                });
+
+                // Mark messages as read on the latest appointment
+                providerService.markMessagesRead(selectedChat.latestAppointmentId);
+            } catch (err) {
+                console.error("Fetch chat history error:", err);
+            } finally {
+                setChatLoading(false);
+            }
+        };
+        fetchChatHistory();
+
+        // Real-time listener: append to messages if the incoming message belongs
+        // to ANY of this patient's appointment IDs.
+        const handleMessageForSelected = (msg) => {
+            const belongs = selectedChat.allAppointmentIds.some(
+                id => id.toString() === msg.appointmentId?.toString()
+            );
+            if (!belongs) return;
+
+            setMessages(prev => {
+                if (prev.some(m => m._id === msg._id)) return prev;
+                if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
+                    return prev.map(m => (m.tempId === msg.tempId ? msg : m));
                 }
-            };
-            fetchChatHistory();
+                return [...prev, msg];
+            });
+            providerService.markMessagesRead(msg.appointmentId);
+        };
 
-            const handleMessageForSelected = (msg) => {
-                const isMatch = msg.appointmentId?.toString() === selectedChat._id.toString();
-                
-                if (isMatch) {
-                    setMessages(prev => {
-                        if (prev.some(m => m._id === msg._id)) return prev;
-                        if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
-                            return prev.map(m => m.tempId === msg.tempId ? msg : m);
-                        }
-                        return [...prev, msg];
-                    });
-                    providerService.markMessagesRead(msg.appointmentId);
-                }
-            };
+        socket.current.on("new_message", handleMessageForSelected);
 
-            socket.current.on("new_message", handleMessageForSelected);
-
-            return () => {
-                socket.current.off("new_message", handleMessageForSelected);
-            };
-        }
+        return () => {
+            socket.current.off("new_message", handleMessageForSelected);
+        };
     }, [selectedChat]);
 
+    // ─── File upload ───────────────────────────────────────────────────────────
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -186,18 +249,19 @@ const ProviderMessages = () => {
         }
     };
 
-
+    // ─── Auto-scroll ───────────────────────────────────────────────────────────
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // ─── Send message ──────────────────────────────────────────────────────────
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if ((!newMessage.trim() && !attachment) || !selectedChat) return;
 
         const tempId = Date.now().toString();
-        
-        // Optimistic update for text-only
+
+        // Optimistic update for text-only messages
         if (!attachment) {
             const optimisticMsg = {
                 _id: tempId,
@@ -222,9 +286,11 @@ const ProviderMessages = () => {
         try {
             const response = await providerService.sendMessage(msgData);
             const savedMsg = response.message || response.data || response;
-            
-            // Immediately replace optimistic message with the saved one from server
-            setMessages(prev => prev.map(m => m.tempId === tempId ? { ...savedMsg, tempId } : m));
+
+            // Replace the optimistic message with the server-confirmed one
+            setMessages(prev =>
+                prev.map(m => (m.tempId === tempId ? { ...savedMsg, tempId } : m))
+            );
 
             if (attachment) {
                 setAttachment(null);
@@ -237,10 +303,12 @@ const ProviderMessages = () => {
         }
     };
 
+    // ─── Filtered sidebar list ─────────────────────────────────────────────────
     const filteredChats = chats.filter(c =>
         c.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // ─── Loading state ─────────────────────────────────────────────────────────
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -249,9 +317,10 @@ const ProviderMessages = () => {
         );
     }
 
+    // ─── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="h-[calc(100vh-180px)] bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden flex animate-fadeIn">
-            {/* Sidebar: Patient List */}
+            {/* Sidebar: Unified Patient List (one entry per email) */}
             <div className="w-80 border-r border-gray-50 flex flex-col bg-slate-50/30">
                 <div className="p-6 space-y-4">
                     <h2 className="text-xl font-black text-gray-900 tracking-tight">Messages</h2>
@@ -268,36 +337,57 @@ const ProviderMessages = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-2">
-                    {filteredChats.length > 0 ? filteredChats.map((chat) => (
-                        <div key={chat._id} className="relative group">
-                            <button
-                                onClick={() => setSelectedChat(chat)}
-                                className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${selectedChat?.patient?._id === chat.patient?._id
-                                    ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 scale-[1.02]'
-                                    : 'bg-white hover:bg-teal-50/50 text-gray-900'
+                    {filteredChats.length > 0 ? filteredChats.map((chat) => {
+                        const isActive = selectedChat?.email === chat.email;
+                        return (
+                            <div key={chat.email} className="relative group">
+                                <button
+                                    onClick={() => setSelectedChat(chat)}
+                                    className={`w-full p-4 rounded-3xl flex items-center space-x-3 transition-all ${
+                                        isActive
+                                            ? 'bg-gray-900 text-white shadow-lg shadow-gray-200 scale-[1.02]'
+                                            : 'bg-white hover:bg-teal-50/50 text-gray-900'
                                     }`}
-                            >
-                                <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center text-sm font-black shadow-sm ${selectedChat?.patient?._id === chat.patient?._id ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
+                                >
+                                    <div className={`w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center text-sm font-black shadow-sm ${
+                                        isActive ? 'bg-white/20' : 'bg-teal-100 text-teal-600'
                                     }`}>
-                                    {chat.patient?.profilePhoto ? (
-                                        <img src={chat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
-                                    ) : (
-                                        chat.patient?.fullName?.charAt(0)
-                                    )}
-                                </div>
-                                <div className="flex-1 text-left">
-                                    <p className="font-bold text-sm truncate">{chat.patient?.fullName}</p>
-                                    <p className={`text-[10px] font-bold truncate ${selectedChat?.patient?._id === chat.patient?._id ? 'text-teal-100' : 'text-gray-400 italic'}`}>
-                                        {chat.recentMessage}
-                                    </p>
-                                </div>
-                                <div className="text-[8px] font-black uppercase flex flex-col items-end space-y-1">
-                                    <span className={selectedChat?.patient?._id === chat.patient?._id ? 'text-teal-200' : 'text-gray-300'}>{chat.lastTime}</span>
-                                    {chat.status === 'Pending' && <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></div>}
-                                </div>
-                            </button>
-                        </div>
-                    )) : (
+                                        {chat.patient?.profilePhoto ? (
+                                            <img src={chat.patient.profilePhoto} className="w-full h-full object-cover" alt="" />
+                                        ) : (
+                                            chat.patient?.fullName?.charAt(0)
+                                        )}
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-bold text-sm truncate">{chat.patient?.fullName}</p>
+                                        <p className={`text-[10px] font-bold truncate ${
+                                            isActive ? 'text-teal-100' : 'text-gray-400 italic'
+                                        }`}>
+                                            {chat.recentMessage}
+                                        </p>
+                                    </div>
+                                    <div className="text-[8px] font-black uppercase flex flex-col items-end space-y-1">
+                                        <span className={isActive ? 'text-teal-200' : 'text-gray-300'}>
+                                            {chat.lastTime}
+                                        </span>
+                                        {/* Appointment count badge — only shown when patient has multiple bookings */}
+                                        {chat.allAppointmentIds.length > 1 && (
+                                            <span className={`px-1.5 py-0.5 rounded-full text-[7px] font-black ${
+                                                isActive
+                                                    ? 'bg-white/20 text-teal-100'
+                                                    : 'bg-teal-100 text-teal-600'
+                                            }`}>
+                                                {chat.allAppointmentIds.length} appts
+                                            </span>
+                                        )}
+                                        {chat.status === 'Pending' && (
+                                            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+                                        )}
+                                    </div>
+                                </button>
+                            </div>
+                        );
+                    }) : (
                         <div className="text-center py-10 px-6">
                             <MessageSquare className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                             <p className="text-xs text-gray-400 font-bold italic">No active patient threads found.</p>
@@ -321,10 +411,19 @@ const ProviderMessages = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-gray-900 leading-none mb-1">{selectedChat.patient?.fullName}</h3>
+                                    <h3 className="font-black text-gray-900 leading-none mb-1">
+                                        {selectedChat.patient?.fullName}
+                                    </h3>
                                     <div className="flex items-center space-x-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Live Sync Connected</span>
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            Live Sync Connected
+                                        </span>
+                                        {selectedChat.allAppointmentIds.length > 1 && (
+                                            <span className="text-[9px] font-black text-teal-500 bg-teal-50 px-2 py-0.5 rounded-full">
+                                                {selectedChat.allAppointmentIds.length} appointments unified
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -364,12 +463,13 @@ const ProviderMessages = () => {
                                                     className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-fadeIn`}
                                                 >
                                                     <div className="max-w-[70%] space-y-1">
-                                                        <div className={`p-4 rounded-[1.5rem] font-bold text-sm shadow-sm ${isMe
-                                                            ? 'bg-teal-600 text-white rounded-tr-none shadow-teal-100/50'
-                                                            : 'bg-white text-gray-800 border border-gray-50 rounded-tl-none'
-                                                            }`}>
+                                                        <div className={`p-4 rounded-[1.5rem] font-bold text-sm shadow-sm ${
+                                                            isMe
+                                                                ? 'bg-teal-600 text-white rounded-tr-none shadow-teal-100/50'
+                                                                : 'bg-white text-gray-800 border border-gray-50 rounded-tl-none'
+                                                        }`}>
                                                             {msg.content}
-                                                            
+
                                                             {msg.attachments && msg.attachments.length > 0 && (
                                                                 <div className="mt-3 space-y-2">
                                                                     {msg.attachments.map((at, i) => (
@@ -378,13 +478,16 @@ const ProviderMessages = () => {
                                                                             href={getAssetUrl(at.url)}
                                                                             target="_blank"
                                                                             rel="noopener noreferrer"
-                                                                            className={`flex items-center space-x-2 p-3 rounded-xl border ${isMe
-                                                                                ? 'bg-white/10 border-white/20 text-white'
-                                                                                : 'bg-teal-50 border-teal-100 text-teal-700'
-                                                                                } hover:scale-[1.02] transition-transform`}
+                                                                            className={`flex items-center space-x-2 p-3 rounded-xl border ${
+                                                                                isMe
+                                                                                    ? 'bg-white/10 border-white/20 text-white'
+                                                                                    : 'bg-teal-50 border-teal-100 text-teal-700'
+                                                                            } hover:scale-[1.02] transition-transform`}
                                                                         >
                                                                             <FileText className="w-4 h-4" />
-                                                                            <span className="text-[10px] font-black truncate max-w-[150px] uppercase tracking-tighter">{at.name}</span>
+                                                                            <span className="text-[10px] font-black truncate max-w-[150px] uppercase tracking-tighter">
+                                                                                {at.name}
+                                                                            </span>
                                                                         </a>
                                                                     ))}
                                                                 </div>
@@ -404,7 +507,6 @@ const ProviderMessages = () => {
                                                 </div>
                                             );
                                         })}
-
                                     </div>
                                 ))
                             ) : (
@@ -414,7 +516,9 @@ const ProviderMessages = () => {
                                     </div>
                                     <div>
                                         <p className="font-black text-gray-900 uppercase tracking-widest text-xs">Clinical Encryption Active</p>
-                                        <p className="text-xs font-bold text-gray-500 italic max-w-xs mt-2">Messages are end-to-end encrypted. Start providing medical guidance below.</p>
+                                        <p className="text-xs font-bold text-gray-500 italic max-w-xs mt-2">
+                                            Messages are end-to-end encrypted. Start providing medical guidance below.
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -487,7 +591,9 @@ const ProviderMessages = () => {
                         </div>
                         <div className="max-w-xs">
                             <h3 className="text-xl font-black text-gray-900 tracking-tight">Select a consultation</h3>
-                            <p className="text-sm font-bold text-gray-400 italic mt-2">Choose a patient from the left column to view message history and send new clinical instructions.</p>
+                            <p className="text-sm font-bold text-gray-400 italic mt-2">
+                                Choose a patient from the left column to view message history and send new clinical instructions.
+                            </p>
                         </div>
                     </div>
                 )}
