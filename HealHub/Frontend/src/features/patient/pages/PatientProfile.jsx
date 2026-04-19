@@ -133,6 +133,7 @@ const PatientProfile = () => {
                                             src={profile.profilePhoto}
                                             alt="Profile"
                                             className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500"
+                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=random&color=fff`; }}
                                         />
                                     ) : (
                                         profile?.fullName?.charAt(0) || "P"

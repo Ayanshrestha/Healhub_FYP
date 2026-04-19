@@ -144,7 +144,12 @@ const ProviderProfile = () => {
                             <div className="w-32 h-32 rounded-[2rem] bg-white p-1 shadow-2xl">
                                 <div className="w-full h-full rounded-[1.8rem] bg-teal-50 flex items-center justify-center overflow-hidden border-4 border-white">
                                     {profile?.profilePhoto ? (
-                                        <img src={profile.profilePhoto.startsWith('http') ? profile.profilePhoto : `${BASE_URL}${profile.profilePhoto}`} alt="Profile" className="w-full h-full object-cover" />
+                                        <img 
+                                            src={profile.profilePhoto.startsWith('http') ? profile.profilePhoto : `${BASE_URL}${profile.profilePhoto}`} 
+                                            alt="Profile" 
+                                            className="w-full h-full object-cover" 
+                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.fullName)}&background=random&color=fff`; }}
+                                        />
                                     ) : (
                                         <User className="w-12 h-12 text-teal-300" />
                                     )}

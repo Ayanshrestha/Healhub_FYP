@@ -150,7 +150,7 @@ const ClinicProfile = () => {
                                         src={getAssetUrl(clinic.clinicLogo)}
                                         alt="Clinic Logo"
                                         className="w-full h-full object-cover"
-                                        onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
+                                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clinic.clinicName)}&background=random`; }}
                                     />
                                 </div>
                             </div>
@@ -328,7 +328,12 @@ const ClinicProfile = () => {
                                             <div key={i} className="group p-8 bg-white rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-[0_24px_48px_-12px_rgba(0,128,128,0.12)] hover:border-teal-200 transition-all duration-500 flex flex-col items-center text-center">
                                                 <div className="w-28 h-28 bg-gray-50 rounded-[2.5rem] overflow-hidden shadow-inner mb-6 group-hover:scale-105 transition-transform duration-500 border-4 border-white">
                                                     {doc.profilePhoto ? (
-                                                        <img src={getAssetUrl(doc.profilePhoto)} alt={doc.fullName} className="w-full h-full object-cover" />
+                                                        <img 
+                                                            src={getAssetUrl(doc.profilePhoto)} 
+                                                            alt={doc.fullName} 
+                                                            className="w-full h-full object-cover" 
+                                                            onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(doc.fullName)}&background=random`; }}
+                                                        />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-gray-300">
                                                             <Users className="w-12 h-12" />
