@@ -8,7 +8,7 @@ import Doctor from "../../models/doctor.js";
 import Patient from "../../models/patient.js";
 import { SUBSCRIPTION_PLANS } from "../../constants/pricing.js";
 import { createNotification } from "../common/notificationService.js";
-import { sendEmail, getPaymentReceiptTemplate, getProviderBookingNotificationTemplate } from "../common/emailService.js";
+import { sendEmail, getPaymentReceiptTemplate, getProviderBookingNotificationTemplate, getAppointmentConfirmationTemplate } from "../common/emailService.js";
 import User from "../../models/user.js";
 
 /**
@@ -39,7 +39,7 @@ export const initiatePayment = async (clinicId, planName) => {
         customer_info: {
             name: clinic.ownerName,
             email: clinic.email,
-            phone: "9800000001", // Use test number for sandbox initiation
+            phone: clinic.phone || "9800000001", // Use clinic phone if available
         },
     };
 
@@ -88,7 +88,8 @@ export const initiateAppointmentPayment = async (appointmentId) => {
 
     if (!appointment) throw new Error("Appointment not found");
 
-    const doctor = await Doctor.findById(appointment.providerId);
+    // Use populated doctor if available, else fetch
+    const doctor = appointment.providerId?._id ? appointment.providerId : await Doctor.findById(appointment.providerId);
     if (!doctor) throw new Error("Doctor not found for this appointment");
 
     // Using appointment.consultationFee to ensure Home Visit surcharges are included
@@ -102,10 +103,14 @@ export const initiateAppointmentPayment = async (appointmentId) => {
         purchase_order_name: `Consultation with Dr. ${doctor.fullName}`,
         customer_info: {
             name: appointment.patientId.fullName || "Patient",
-            email: "patient@healhub.com",
+            email: appointment.patientId.email || "patient@healhub.com",
             phone: appointment.patientId.phone || "9800000000",
         },
     };
+
+    if (!config.khalti.secretKey) {
+        throw new Error("Khalti Secret Key is not configured in the server");
+    }
 
     try {
         const url = `${config.khalti.apiUrl || "https://a.khalti.com/api/v2"}/epayment/initiate/`;
