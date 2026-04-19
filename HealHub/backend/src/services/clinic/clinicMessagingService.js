@@ -36,12 +36,18 @@ export const sendMessage = async (clinicId, appointmentId, messageData) => {
         context: "CLINICAL"
     });
 
-    // 3. Real-time emit
-    emitToRoom(appointmentId.toString(), "new_message", {
+    // 3. Real-time emit to the APPOINTMENT room
+    const messageObject = {
         ...message.toObject(),
         tempId,
-        appointmentId: appointmentId.toString() // Explicitly stringify in payload too
-    });
+        appointmentId: appointmentId.toString()
+    };
+    emitToRoom(appointmentId.toString(), "new_message", messageObject);
+
+    // FAILSAFE: Emit directly to Patient's personal room
+    if (appointment.patientId && appointment.patientId.userId) {
+        emitToRoom(appointment.patientId.userId.toString(), "new_message", messageObject);
+    }
 
     // 4. Notify Patient
     if (appointment.patientId && appointment.patientId.userId) {

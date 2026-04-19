@@ -43,22 +43,26 @@ export const sendMessage = async (userId, appointmentId, messageData) => {
         context: context || "DIRECT"
     });
 
-    // 3. Real-time emit
-    emitToRoom(appointmentId.toString(), "new_message", {
+    // 3. Real-time emit to the APPOINTMENT room
+    const messageObject = {
         ...message.toObject(),
-        tempId
-    });
+        tempId,
+        appointmentId: appointmentId.toString()
+    };
+    emitToRoom(appointmentId.toString(), "new_message", messageObject);
 
     // 4. Notify Provider
     let provider;
     if (appointment.providerType === "Doctor") {
         provider = await Doctor.findById(appointment.providerId);
     } else {
-        // Therapist logic
         provider = await Therapist.findById(appointment.providerId);
     }
 
     if (provider && provider.userId) {
+        // FAILSAFE: Emit directly to Provider's personal room to ensure they see it in the sidebar/notifications
+        emitToRoom(provider.userId.toString(), "new_message", messageObject);
+
         await createNotification({
             recipientId: provider.userId,
             type: "MESSAGE",
@@ -72,6 +76,9 @@ export const sendMessage = async (userId, appointmentId, messageData) => {
     if (context === "CLINICAL") {
         const clinic = await Clinic.findById(appointment.clinicId);
         if (clinic && clinic.userId) {
+            // FAILSAFE: Emit to Clinic's personal room
+            emitToRoom(clinic.userId.toString(), "new_message", messageObject);
+
             // Standard notification
             await createNotification({
                 recipientId: clinic.userId,

@@ -65,30 +65,51 @@ const PatientMessages = () => {
                 setAppointment(appDetails);
                 setMessages(Array.isArray(msgData) ? msgData : []);
 
-                // Socket setup
-                socket.current = io(SOCKET_URL);
-                socket.current.emit("join_chat", appointmentId.toString());
-
-                socket.current.on("new_message", (msg) => {
-                    if (msg.appointmentId?.toString() === appointmentId?.toString() && msg.context === activeContext) {
-                        setMessages(prev => {
-                            // 1. Check if we already have this message by _id
-                            if (prev.some(m => m._id === msg._id)) return prev;
-
-                            // 2. Check if we have an optimistic message for this tempId
-                            if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
-                                return prev.map(m => m.tempId === msg.tempId ? msg : m);
-                            }
-
-                            // 3. Otherwise add it
-                            return [...prev, msg];
-                        });
-                        // Automatically mark as read if viewing
-                        patientService.markMessagesRead(appointmentId, activeContext);
+                // Socket setup with credentials for cross-origin stability
+                socket.current = io(SOCKET_URL, { withCredentials: true });
+                
+                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                
+                // Join ALL related appointment rooms for this patient-doctor/clinic pair
+                // Assuming we want to hear messages even if they are linked to a different appointment index
+                const allAppointments = await patientService.getAppointments();
+                const relevantApptIds = allAppointments
+                    .filter(a => 
+                        (activeContext === "DIRECT" && a.providerId?._id === appDetails.providerId?._id) ||
+                        (activeContext === "CLINICAL" && a.clinicId?._id === appDetails.clinicId?._id)
+                    )
+                    .map(a => a._id.toString());
+                
+                // Always include the current one just in case
+                const roomsToJoin = [...new Set([...relevantApptIds, appointmentId.toString()])];
+                
+                socket.current.on("connect", () => {
+                    // Join appointment rooms
+                    roomsToJoin.forEach(id => {
+                        socket.current.emit("join_chat", id);
+                    });
+                    
+                    // Join personal user room for failsafe delivery
+                    if (user._id || user.userId) {
+                        socket.current.emit("join_user_room", user.userId || user._id);
                     }
                 });
 
-                // Initial mark as read
+                socket.current.on("new_message", (msg) => {
+                    // Accept message if it belongs to any of our related appointments AND matches context
+                    if (roomsToJoin.includes(msg.appointmentId?.toString()) && msg.context === activeContext) {
+                        setMessages(prev => {
+                            if (prev.some(m => m._id === msg._id)) return prev;
+                            if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
+                                return prev.map(m => m.tempId === msg.tempId ? msg : m);
+                            }
+                            return [...prev, msg];
+                        });
+                        patientService.markMessagesRead(msg.appointmentId, activeContext);
+                    }
+                });
+
+                // Initial mark as read for current view
                 patientService.markMessagesRead(appointmentId, activeContext);
             } catch (error) {
                 console.error("Chat init error:", error);

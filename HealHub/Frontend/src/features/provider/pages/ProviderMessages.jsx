@@ -111,8 +111,38 @@ const ProviderMessages = () => {
         };
         fetchChats();
 
-        // Initialize socket
-        socket.current = io(SOCKET_URL);
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        // Initialize socket with credentials
+        socket.current = io(SOCKET_URL, { withCredentials: true });
+
+        socket.current.on("connect", () => {
+            if (user._id || user.userId) {
+                socket.current.emit("join_user_room", user.userId || user._id);
+            }
+            console.log("📶 Provider Socket Connected and Joined User Room");
+        });
+
+        // Global listener for sidebar updates and notifications
+        socket.current.on("new_message", (msg) => {
+            setChats(prevChats => prevChats.map(c => {
+                const isMatch = c.latestAppointmentId?.toString() === msg.appointmentId?.toString() || 
+                               (c.appointments || []).map(id => id.toString()).includes(msg.appointmentId?.toString());
+                
+                if (isMatch) {
+                    return {
+                        ...c,
+                        recentMessage: msg.content,
+                        lastTime: new Date(msg.createdAt).toLocaleDateString()
+                    };
+                }
+                return c;
+            }));
+
+            // If this message belongs to the CURRENTLY selected chat, append it to messages
+            // (The setMessages call is handled here safely via a ref or by checking current selectedChat)
+            // Actually, we'll handle the setMessages in a second listener specifically for the selected chat
+            // or just ensure this one has access to the current selectedChat ID.
+        });
 
         return () => {
             if (socket.current) socket.current.disconnect();
@@ -121,20 +151,20 @@ const ProviderMessages = () => {
 
 
     useEffect(() => {
-        if (selectedChat) {
+        if (selectedChat && socket.current) {
             const fetchChatHistory = async () => {
                 try {
                     setChatLoading(true);
                     const res = await providerService.getMessageHistory(selectedChat.latestAppointmentId);
                     setMessages(res.history || res.messages || []);
 
-                    // Join all related appointment rooms for real-time sync across threads
+                    // Join all related appointment rooms for this specific patient
                     const appointmentIds = selectedChat.appointments || [selectedChat.latestAppointmentId];
                     appointmentIds.forEach(id => {
                         socket.current.emit("join_chat", id.toString());
                     });
 
-                    // Also mark read
+                    // Mark as read
                     providerService.markMessagesRead(selectedChat.latestAppointmentId);
                 } catch (err) {
                     console.error("Fetch chat history error:", err);
@@ -144,42 +174,27 @@ const ProviderMessages = () => {
             };
             fetchChatHistory();
 
-            // Listen for messages in this room
-            socket.current.on("new_message", (msg) => {
-                if (msg.appointmentId.toString() === selectedChat.latestAppointmentId.toString() || 
-                    (selectedChat.appointments || []).includes(msg.appointmentId.toString())) {
+            // Room-specific listener for the active conversation
+            const handleMessageForSelected = (msg) => {
+                const isMatch = msg.appointmentId?.toString() === selectedChat.latestAppointmentId?.toString() || 
+                               (selectedChat.appointments || []).map(id => id.toString()).includes(msg.appointmentId?.toString());
+                
+                if (isMatch) {
                     setMessages(prev => {
-                        // 1. Duplicate check
                         if (prev.some(m => m._id === msg._id)) return prev;
-
-                        // 2. Optimistic replacement
                         if (msg.tempId && prev.some(m => m.tempId === msg.tempId)) {
                             return prev.map(m => m.tempId === msg.tempId ? msg : m);
                         }
-
                         return [...prev, msg];
                     });
-
-                    // Update sidebar
-                    setChats(prevChats => prevChats.map(c => {
-                        if (c.latestAppointmentId.toString() === msg.appointmentId.toString() || 
-                            (c.appointments || []).includes(msg.appointmentId.toString())) {
-                            return {
-                                ...c,
-                                recentMessage: msg.content,
-                                lastTime: new Date(msg.createdAt).toLocaleDateString()
-                            };
-                        }
-                        return c;
-                    }));
-
-                    // Mark as read if user is looking at it
                     providerService.markMessagesRead(msg.appointmentId);
                 }
-            });
+            };
+
+            socket.current.on("new_message", handleMessageForSelected);
 
             return () => {
-                socket.current.off("new_message");
+                socket.current.off("new_message", handleMessageForSelected);
             };
         }
     }, [selectedChat]);

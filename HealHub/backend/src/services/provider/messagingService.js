@@ -11,7 +11,7 @@ export const sendMessage = async (messageData) => {
     const appointment = await Appointment.findOne({
         _id: appointmentId,
         providerId: providerId
-    });
+    }).populate("patientId");
 
     if (!appointment) {
         const error = new Error("Appointment not found or you are not authorized to send messages in this chat.");
@@ -20,7 +20,7 @@ export const sendMessage = async (messageData) => {
     }
 
     const message = await Message.create({
-        patientId: appointment.patientId,
+        patientId: appointment.patientId?._id || appointment.patientId,
         providerId: appointment.providerId,
         providerType: appointment.providerType,
         clinicId: appointment.clinicId,
@@ -32,11 +32,19 @@ export const sendMessage = async (messageData) => {
         context: "DIRECT"
     });
 
-    // Real-time emission
-    emitToRoom(appointmentId.toString(), "new_message", {
+    const messageObject = {
         ...message.toObject(),
-        tempId
-    });
+        tempId,
+        appointmentId: appointmentId.toString()
+    };
+
+    // Real-time emission to the APPOINTMENT room
+    emitToRoom(appointmentId.toString(), "new_message", messageObject);
+
+    // FAILSAFE: Emit directly to Patient's personal room
+    if (appointment.patientId && appointment.patientId.userId) {
+        emitToRoom(appointment.patientId.userId.toString(), "new_message", messageObject);
+    }
 
     return message;
 };
