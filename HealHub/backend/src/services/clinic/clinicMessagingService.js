@@ -39,7 +39,8 @@ export const sendMessage = async (clinicId, appointmentId, messageData) => {
     // 3. Real-time emit
     emitToRoom(appointmentId.toString(), "new_message", {
         ...message.toObject(),
-        tempId
+        tempId,
+        appointmentId: appointmentId.toString() // Explicitly stringify in payload too
     });
 
     // 4. Notify Patient

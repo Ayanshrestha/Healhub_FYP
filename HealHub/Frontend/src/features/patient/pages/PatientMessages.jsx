@@ -70,7 +70,7 @@ const PatientMessages = () => {
                 socket.current.emit("join_chat", appointmentId.toString());
 
                 socket.current.on("new_message", (msg) => {
-                    if (msg.appointmentId.toString() === appointmentId.toString() && msg.context === activeContext) {
+                    if (msg.appointmentId?.toString() === appointmentId?.toString() && msg.context === activeContext) {
                         setMessages(prev => {
                             // 1. Check if we already have this message by _id
                             if (prev.some(m => m._id === msg._id)) return prev;

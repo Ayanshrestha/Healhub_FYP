@@ -42,7 +42,7 @@ const ClinicalMessaging = ({ appointmentId, patientName, onClose }) => {
     // Socket Integration
     useEffect(() => {
         if (socket && appointmentId) {
-            socket.emit("join_room", appointmentId.toString());
+            socket.emit("join_chat", appointmentId.toString());
 
             const handleNewMessage = (newMessage) => {
                 if (newMessage.context === "CLINICAL") {

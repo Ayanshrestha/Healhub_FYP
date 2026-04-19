@@ -125,13 +125,17 @@ const ProviderMessages = () => {
             const fetchChatHistory = async () => {
                 try {
                     setChatLoading(true);
-                    const res = await providerService.getMessageHistory(selectedChat.appointmentId);
+                    const res = await providerService.getMessageHistory(selectedChat.latestAppointmentId);
                     setMessages(res.history || res.messages || []);
 
-                    // Join the specific chat room
-                    socket.current.emit("join_chat", selectedChat.appointmentId.toString());
+                    // Join all related appointment rooms for real-time sync across threads
+                    const appointmentIds = selectedChat.appointments || [selectedChat.latestAppointmentId];
+                    appointmentIds.forEach(id => {
+                        socket.current.emit("join_chat", id.toString());
+                    });
+
                     // Also mark read
-                    providerService.markMessagesRead(selectedChat.appointmentId);
+                    providerService.markMessagesRead(selectedChat.latestAppointmentId);
                 } catch (err) {
                     console.error("Fetch chat history error:", err);
                 } finally {
