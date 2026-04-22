@@ -114,3 +114,9 @@ Possible improvements for the system:
 * Improved user interface with more interactive data visualizations
 * Additional security features (Two-Factor Authentication)
 * More advanced analytics for clinics to track patient recovery trends
+
+## Authors
+* **Ayan Shrestha** - [BIT] - Itahari International College
+
+## License
+This project is created for educational purposes as part of a Final Year Project.
